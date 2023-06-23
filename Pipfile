@@ -8,6 +8,7 @@ pandas = "*"
 pd-dataprovider = {editable = true, path = "/Users/fbjarkes/git/pd-dataprovider"}
 pytz = "*"
 matplotlib = "*"
+finta = "*"
 
 [dev-packages]
 
