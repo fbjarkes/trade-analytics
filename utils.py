@@ -1,12 +1,23 @@
+from typing import List
 import pandas as pd
 import json
 
+def compose(f, g):
+    return lambda *args, **kwargs: f(g(*args, **kwargs))
 
 def filter_dates(start: str, end: str, df: pd.DataFrame) -> pd.DataFrame:
     if start and end:
         df = df.loc[start:end]
     return df
-    
+
+def filter_symbols(symbols: List[str], trades: pd.DataFrame) -> pd.DataFrame:
+    # filter all rows where column symbol is not in symbols list:
+    filtered_trades = trades[trades['symbol'].isin(symbols)]
+    return filtered_trades
+
+def filter_start_date(date: str, df: pd.DataFrame) -> pd.DataFrame:
+    starting_date = pd.to_datetime(date)
+    return df[df.index >= starting_date]
 
 def parse_json_to_dataframe(symbol: str, path: str) -> pd.DataFrame:
     file_path = f"{path}/{symbol}.json"
