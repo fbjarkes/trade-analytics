@@ -10,6 +10,8 @@ pytz = "*"
 matplotlib = "*"
 finta = "*"
 scipy = "*"
+streamlit = "*"
+plotly = "*"
 
 [dev-packages]
 
