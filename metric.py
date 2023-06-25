@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import List, Tuple
 import pandas as pd
@@ -54,6 +55,10 @@ metrics_functions = {
     'CLOSE_EMA_50':  close_ema_50
 }
 
+rank_metrics = {
+    'EMA100_DISTANCE'
+}
+
 def index_analysis(metric: str, index: pd.DataFrame, trades: pd.DataFrame) -> Tuple[TradeData, pd.DataFrame]:
     func = metrics_functions[metric]
     func(df=index, metric=metric)
@@ -77,6 +82,12 @@ def index_analysis(metric: str, index: pd.DataFrame, trades: pd.DataFrame) -> Tu
     })
     return res, merged_df
 
-def apply_rank_metric(df: pd.DataFrame) -> pd.DataFrame:
-    df['EMA100'] = TA.EMA(df, 100)
+def apply_rank_metric(df: pd.DataFrame, metric: str) -> pd.DataFrame:
+    if metric == 'EMA100_DISTANCE':
+        df[metric] = (df['Close'] - TA.EMA(df, 100)) / df['Close']        
     return df
+
+def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(apply_rank_metric, dfs))
+    return results
