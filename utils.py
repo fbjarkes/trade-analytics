@@ -47,10 +47,15 @@ def filter_start_date(date: str, df: pd.DataFrame) -> pd.DataFrame:
 
 def filter_daily_rank(metric: str, trades: pd.DataFrame) -> pd.DataFrame:
     def process_group(group):
-        date = group.name
-        print(f"{date}: sorting on rank and removing")                          
-    grouped = trades.groupby(trades.index.date)
-    grouped.apply(process_group)
+        daily = group.name[0]
+        m15 = group.name[1]
+        group[f"{metric}_RANK"] = group[metric].rank(method='min', ascending=True)
+        return group
+
+    groups = trades.groupby([pd.Grouper(freq='D'), pd.Grouper(freq='15Min')])
+    processed_groups = groups.apply(process_group).droplevel(0).droplevel(1)
+    
+    return processed_groups
 
 
 def apply_daily_rank(metric: str, trades: pd.DataFrame, tickers_dict: dict[str, pd.DataFrame]) -> pd.DataFrame:
