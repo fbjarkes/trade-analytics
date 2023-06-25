@@ -84,7 +84,7 @@ def index_analysis(metric: str, index: pd.DataFrame, trades: pd.DataFrame) -> Tu
 
 def apply_rank_metric(df: pd.DataFrame, metric: str) -> pd.DataFrame:
     if metric == 'EMA100_DISTANCE':
-        df[metric] = (df['Close'] - TA.EMA(df, 100)) / df['Close']        
+        df[metric] = (df['Close'] - TA.EMA(df, 100)) / TA.ATR(df, 50)
     return df
 
 def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:

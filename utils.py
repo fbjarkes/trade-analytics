@@ -45,28 +45,28 @@ def filter_start_date(date: str, df: pd.DataFrame) -> pd.DataFrame:
     return df[df.index >= starting_date]
 
 
-def filter_daily_rank(metric: str, trades: pd.DataFrame) -> pd.DataFrame:
-    def process_group(group):
+def apply_rank(metric: str, trades: pd.DataFrame, tickers_dict: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    def apply_group_rank(group):
         daily = group.name[0]
         m15 = group.name[1]
-        group[f"{metric}_RANK"] = group[metric].rank(method='min', ascending=True)
+        group[f"{metric}_ASC"] = group[metric].rank(method='min', ascending=True)
+        group[f"{metric}_DESC"] = group[metric].rank(method='min', ascending=False)
         return group
-
-    groups = trades.groupby([pd.Grouper(freq='D'), pd.Grouper(freq='15Min')])
-    processed_groups = groups.apply(process_group).droplevel(0).droplevel(1)
     
-    return processed_groups
-
-
-def apply_daily_rank(metric: str, trades: pd.DataFrame, tickers_dict: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    def apply_rank(row):        
+    def apply_metric(row):        
         ticker_df = tickers_dict[row['symbol']]
         start_date = row.name
         row[metric] = ticker_df.loc[start_date][metric]
         #print(f"{start_date}: added {ticker_df.loc[start_date][metric]} for {row['symbol']}")        
         return row     
-    return trades.apply(apply_rank, axis=1)
+    
+    trades = trades.apply(apply_metric, axis=1)
+    groups = trades.groupby([pd.Grouper(freq='D'), pd.Grouper(freq='15Min')])
+    processed_groups = groups.apply(apply_group_rank).droplevel(0).droplevel(1)
+    return processed_groups
 
+def filter_rank(metric: str, trades: pd.DataFrame, rank: int) -> pd.DataFrame:
+    return trades.loc[trades[f"{metric}"] <= rank]
 
 def parse_json_to_dataframe(symbol: str, path: str) -> pd.DataFrame:
     """
