@@ -12,6 +12,7 @@ finta = "*"
 scipy = "*"
 streamlit = "*"
 plotly = "*"
+asyncio = "*"
 
 [dev-packages]
 
