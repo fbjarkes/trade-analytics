@@ -1,8 +1,31 @@
-from typing import List, Optional
+import multiprocessing
+from typing import Any, Callable, List, Optional
+import numpy as np
 import pandas as pd
 import json
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
+
+from functools import wraps
+from time import perf_counter
+from typing import Callable
+from typing import Tuple
+
+def timer(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = perf_counter()
+        results = func(*args, **kwargs)
+        end = perf_counter()
+        run_time = end - start
+        return results, run_time
+    return wrapper
+
+@timer
+def p_map(items: List[Any], func: Callable, options: Optional[dict[str, any]] = None) -> Any:
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(func, items))
+    return results
 
 def compose(f, g):
     return lambda *args, **kwargs: f(g(*args, **kwargs))
@@ -21,13 +44,24 @@ def filter_start_date(date: str, df: pd.DataFrame) -> pd.DataFrame:
     starting_date = pd.to_datetime(date)
     return df[df.index >= starting_date]
 
-def apply_daily_rank(metric: str, trades: pd.DataFrame) -> pd.DataFrame:
+
+def filter_daily_rank(metric: str, trades: pd.DataFrame) -> pd.DataFrame:
+    def process_group(group):
+        date = group.name
+        print(f"{date}: sorting on rank and removing")                          
     grouped = trades.groupby(trades.index.date)
-    for date, group in grouped:
-        print(f"Processing date: {date}")
-        print(group)
-    return trades
-    
+    grouped.apply(process_group)
+
+
+def apply_daily_rank(metric: str, trades: pd.DataFrame, tickers_dict: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    def apply_rank(row):        
+        ticker_df = tickers_dict[row['symbol']]
+        start_date = row.name
+        row[metric] = ticker_df.loc[start_date][metric]
+        #print(f"{start_date}: added {ticker_df.loc[start_date][metric]} for {row['symbol']}")        
+        return row     
+    return trades.apply(apply_rank, axis=1)
+
 
 def parse_json_to_dataframe(symbol: str, path: str) -> pd.DataFrame:
     """
@@ -101,7 +135,9 @@ def process_json_data(data: dict, symbol: str) -> pd.DataFrame:
     if data:
         df = pd.DataFrame(data, columns=['DateTime', 'Open', 'High', 'Low', 'Close', 'Volume'])
         df.set_index('DateTime', inplace=True)
-        df.index = pd.DatetimeIndex(df.index)  # TODO: add freq?
+        # TODO: add freq?
+        df.index = pd.to_datetime(df.index, utc=True).tz_convert('America/New_York').tz_localize(None)
+        #TODO: remove extended hours?
         df.name = symbol
         return df
     else:
@@ -114,7 +150,8 @@ def json_to_df(symbol: str, path: str) -> Optional[pd.DataFrame]:
 
     return None
 
-def load_multiple_json_to_df(root_path: str, symbols: list[str]) -> list[Optional[pd.DataFrame]]:
+@timer
+def load_json_to_df_async(root_path: str, symbols: list[str]) -> list[Optional[pd.DataFrame]]:
     async def process_file(symbol, path):
         print(f"Processing file: {path}")
         loop = asyncio.get_running_loop()
@@ -129,3 +166,23 @@ def load_multiple_json_to_df(root_path: str, symbols: list[str]) -> list[Optiona
         return await asyncio.gather(*tasks)
 
     return asyncio.run(load_files())
+
+#TODO: does this actually work
+def load_json_to_df_threads(symbols: list[str], paths: list[str]) -> list[Optional[pd.DataFrame]]:
+    async def process_file(symbol, path):
+        loop = asyncio.get_running_loop()
+        data = await loop.run_in_executor(None, load_json_data, symbol, path)
+        return process_json_data(data, symbol)
+
+    num_cpus = multiprocessing.cpu_count()
+    results = []
+    with ThreadPoolExecutor(max_workers=num_cpus) as executor:
+        loop = asyncio.get_event_loop()
+        tasks = []
+        for symbol, path in zip(symbols, paths):
+            task = loop.create_task(process_file(symbol, path))
+            tasks.append(task)
+
+        results = loop.run_until_complete(asyncio.gather(*tasks))
+
+    return results
