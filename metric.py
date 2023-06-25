@@ -77,3 +77,6 @@ def index_analysis(metric: str, index: pd.DataFrame, trades: pd.DataFrame) -> Tu
     })
     return res, merged_df
 
+def apply_rank_metric(df: pd.DataFrame) -> pd.DataFrame:
+    df['EMA100'] = TA.EMA(df, 100)
+    return df
