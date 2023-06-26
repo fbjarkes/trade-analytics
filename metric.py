@@ -47,7 +47,7 @@ def close_ema_50(df: pd.DataFrame, metric: str) -> pd.DataFrame:
     df[metric] = df['close'] >= df['EMA50']
     return df
     
-metrics_functions = {
+INDEX_METRIC_FUNCTIONS = {
     'EMA_CROSS_10_20': ema_cross_10_20,
     'CLOSE_EMA_5': close_ema_5,
     'CLOSE_EMA_10': close_ema_10,
@@ -55,12 +55,16 @@ metrics_functions = {
     'CLOSE_EMA_50':  close_ema_50
 }
 
-rank_metrics = {
-    'EMA100_DISTANCE'
-}
+RANK_METRICS = [
+    #'EMA100_DISTANCE',
+    'PRICE',
+    'RSI5',
+    #'RSI10',
+    #'RSI20',
+]
 
 def index_analysis(metric: str, index: pd.DataFrame, trades: pd.DataFrame) -> Tuple[TradeData, pd.DataFrame]:
-    func = metrics_functions[metric]
+    func = INDEX_METRIC_FUNCTIONS[metric]
     func(df=index, metric=metric)
     merged_df = pd.merge_asof(trades, index[metric], left_index=True, right_on='time', direction='nearest')
     pos_trades = merged_df.loc[merged_df[metric] == True, 'pnl']
@@ -82,9 +86,18 @@ def index_analysis(metric: str, index: pd.DataFrame, trades: pd.DataFrame) -> Tu
     })
     return res, merged_df
 
-def apply_rank_metric(df: pd.DataFrame, metric: str) -> pd.DataFrame:
-    if metric == 'EMA100_DISTANCE':
-        df[metric] = (df['Close'] - TA.EMA(df, 100)) / TA.ATR(df, 50)
+def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
+    for metric in metrics:
+        if metric == 'EMA100_DISTANCE':
+            df[metric] = (df['Close'] - TA.EMA(df, 100)) / TA.ATR(df, 50)
+        if metric == 'PRICE':
+            df[metric] = df['Close']
+        if metric == 'RSI5':
+            df[metric] = TA.RSI(df, 5)
+        if metric == 'RSI10':
+            df[metric] = TA.RSI(df, 10)
+        if metric == 'RSI20':
+            df[metric] = TA.RSI(df, 20)
     return df
 
 def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:

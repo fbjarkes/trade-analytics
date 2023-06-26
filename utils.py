@@ -45,22 +45,24 @@ def filter_start_date(date: str, df: pd.DataFrame) -> pd.DataFrame:
     return df[df.index >= starting_date]
 
 
-def apply_rank(metric: str, trades: pd.DataFrame, tickers_dict: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str, pd.DataFrame]) -> pd.DataFrame:
     def apply_group_rank(group):
         daily = group.name[0]
         m15 = group.name[1]
-        group[f"{metric}_ASC"] = group[metric].rank(method='min', ascending=True)
-        group[f"{metric}_DESC"] = group[metric].rank(method='min', ascending=False)
+        for metric in metrics:
+            group[f"{metric}_ASC"] = group[metric].rank(method='min', ascending=True)
+            group[f"{metric}_DESC"] = group[metric].rank(method='min', ascending=False)
         return group
     
-    def apply_metric(row):        
+    def apply_metrics(row):        
         ticker_df = tickers_dict[row['symbol']]
         start_date = row.name
-        row[metric] = ticker_df.loc[start_date][metric]
+        for metric in metrics:
+            row[metric] = ticker_df.loc[start_date][metric]
         #print(f"{start_date}: added {ticker_df.loc[start_date][metric]} for {row['symbol']}")        
         return row     
     
-    trades = trades.apply(apply_metric, axis=1)
+    trades = trades.apply(apply_metrics, axis=1)
     groups = trades.groupby([pd.Grouper(freq='D'), pd.Grouper(freq='15Min')])
     processed_groups = groups.apply(apply_group_rank).droplevel(0).droplevel(1)
     return processed_groups
