@@ -62,7 +62,7 @@ def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
     with st.spinner('Initializing...'):        
         if 'trades' not in st.session_state and 'tickers_dict' not in st.session_state:
-            trades, tickers_dict = init_data('trades_100.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
+            trades, tickers_dict = init_data('trades_1000.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
             st.session_state.trades = trades
             st.session_state.tickers_dict = tickers_dict
         
@@ -89,14 +89,13 @@ def main():
             st.subheader('Avg. PnL')
             st.metric('Mean', st.session_state.trades['pnl'].mean())
             st.metric('Std',  st.session_state.trades['pnl'].std())
+            st.metric('Max open', utils.max_open(st.session_state.trades))
         with res3:
             st.header(f"Rank {st.session_state.selected_metric} ({len(st.session_state.filtered_trades)})")
             st.subheader('Avg. PnL')
             st.metric('Mean', st.session_state.filtered_trades['pnl'].mean())
             st.metric('Std',  st.session_state.filtered_trades['pnl'].std())
-        # number of trades with rank
-        # avg pnl with STD
-        # How many open simultaneously
+            st.metric('Max open', utils.max_open(st.session_state.filtered_trades))        
         # t, p-value = stats.ttest_ind(<BASELINE_PNL>, <RANK_PNL>)
         # plot cumsum
     

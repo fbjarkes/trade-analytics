@@ -53,7 +53,7 @@ def filter_dates(df: pd.DataFrame, start: str, end: str) -> pd.DataFrame:
     return df
 
 def filter_symbols(trades: pd.DataFrame, symbols: List[str]) -> pd.DataFrame:
-    if not symbols or (len(symbols) == 1 and symbols[0] == ''):
+    if symbols is None or (len(symbols) == 1 and symbols[0] == ''):
         return trades    
     filtered_trades = trades[trades['symbol'].isin(symbols)]
     return filtered_trades
@@ -66,7 +66,6 @@ def filter_rank(trades: pd.DataFrame, metric: str, rank: int) -> pd.DataFrame:
     if metric == 'ALL' or metric is None:
         return trades
     return trades.loc[trades[f"{metric}"] <= rank]
-
 
 def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str, pd.DataFrame]) -> pd.DataFrame:
     def apply_group_rank(group):
@@ -81,7 +80,8 @@ def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str,
         ticker_df = tickers_dict[row['symbol']]
         start_date = row.name
         for metric in metrics:
-            row[metric] = ticker_df.loc[start_date][metric]
+            #row[metric] = 
+            row.loc[metric] = ticker_df.loc[start_date][metric]
         #print(f"{start_date}: added {ticker_df.loc[start_date][metric]} for {row['symbol']}")        
         return row     
     
@@ -90,6 +90,12 @@ def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str,
     processed_groups = groups.apply(apply_group_rank).droplevel(0).droplevel(1)
     return processed_groups
 
+def max_open(trades: pd.DataFrame) -> int:
+    max_in_progress = 0
+    for timestamp in trades.index.unique():
+        in_progress = len(trades[(timestamp >= trades.index) & (timestamp <= trades['end_date'])])
+        max_in_progress = max(max_in_progress, in_progress)
+    return max_in_progress
 
 def parse_json_to_dataframe(symbol: str, path: str) -> pd.DataFrame:
     """
@@ -180,11 +186,12 @@ def json_to_df(symbol: str, path: str) -> Optional[pd.DataFrame]:
 
 @timer
 def load_json_to_df_async(root_path: str, symbols: list[str]) -> list[Optional[pd.DataFrame]]:
-    async def process_file(symbol, path):
-        print(f"Processing file: {path}")
+    async def process_file(symbol, path):        
         loop = asyncio.get_running_loop()
         data = await loop.run_in_executor(None, load_json_data, symbol, path)
-        return process_json_data(data, symbol)
+        df = process_json_data(data, symbol)
+        print(f"Processed file '{path}'")
+        return df
 
     async def load_files():
         tasks = []
