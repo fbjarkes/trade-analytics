@@ -97,7 +97,8 @@ def main():
             st.metric('Max open', utils.max_open(st.session_state.trades))
         with res3:
             st.subheader('Cumulative Equity curve')
-            #TODO
+            with st.spinner('Loading chart'):
+                st.line_chart(st.session_state.trades['pnl'].cumsum())
         
         # ==== Metric result ====
         res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
@@ -109,7 +110,8 @@ def main():
             st.metric('Max open', utils.max_open(st.session_state.filtered_trades))        
         with res3:
             st.subheader('Cumulative Equity curve')
-            #TODO
+            with st.spinner('Loading chart'):
+                st.line_chart(st.session_state.filtered_trades['pnl'].cumsum())
         # t, p-value = stats.ttest_ind(<BASELINE_PNL>, <RANK_PNL>)
         # plot cumsum
     
