@@ -67,8 +67,9 @@ def main():
         
         st.session_state.start_date = st.date_input('Start date', value=st.session_state.trades.index[0].date())        
         #st.session_state.end_date = st.date_input('End date', value=st.session_state.trades.index[-1].date()) 
-        st.session_state.selected_metric = st.selectbox('Select Metric:', metric.SELECTABLE_METRICS)
-        st.session_state.symbols = [] # TODO    
+        st.session_state.selected_metric = st.selectbox('Rank Metric:', metric.SELECTABLE_METRICS)
+        st.session_state.selected_rank = st.selectbox('Rank:', [1,2,3,4,5,6,7,8,9,10])
+        st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
         
         
         # Use original trades to run filter in this order:
@@ -80,7 +81,7 @@ def main():
         #rank_filtered = utils.filter_rank(st.session_state.selected_metric, date_filtered, rank=2)
         #st.session_state.filtered_trades = rank_filtered
         #st.session_state.filtered_trades = filter_trades(st.session_state.trades)
-        st.session_state.filtered_trades = utils.filter_rank(st.session_state.selected_metric, 2, utils.filter_symbols(st.session_state.symbols, utils.filter_start_date(st.session_state.start_date, st.session_state.trades)))
+        st.session_state.filtered_trades = utils.filter_rank(st.session_state.selected_metric, st.session_state.selected_rank, utils.filter_symbols(st.session_state.symbols, utils.filter_start_date(st.session_state.start_date, st.session_state.trades)))
         max_rows = st.slider('Max Rows:', 1, 100, 10)
         table = st.table(st.session_state.filtered_trades.head(max_rows)) 
         #if st.button('Reset'):

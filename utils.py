@@ -41,8 +41,8 @@ def filter_dates(start: str, end: str, df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def filter_symbols(symbols: List[str], trades: pd.DataFrame) -> pd.DataFrame:
-    if len(symbols) == 0:
-        return trades
+    if not symbols or (len(symbols) == 1 and symbols[0] == ''):
+        return trades    
     filtered_trades = trades[trades['symbol'].isin(symbols)]
     return filtered_trades
 
