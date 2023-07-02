@@ -21,6 +21,7 @@ def plot_ohlc_chart(df):
     
 
 def parse_uploaded_csv(file):
+    print(f"Parsing csv {file}")
     data = pd.read_csv(file)    
     data['time'] = pd.to_datetime(data['time'], unit='s')
     data.set_index('time', inplace=True)
@@ -30,12 +31,13 @@ def parse_uploaded_csv(file):
     #data.name = symbol´
     return data
 
-#TODO: @st.cache
+@st.cache_data 
 def load_trades(csv_path: str):
     print(f"Reading trades csv: {csv_path}")
     trades = read_trades_csv(csv_path)
     return trades
 
+@st.cache_data 
 def init_data(trades_path: str, data_path: str):
     trades = load_trades(trades_path)      
     tickers = trades['symbol'].unique()
@@ -62,7 +64,7 @@ def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
     with st.spinner('Initializing...'):        
         if 'trades' not in st.session_state and 'tickers_dict' not in st.session_state:
-            trades, tickers_dict = init_data('trades_1000.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
+            trades, tickers_dict = init_data('trades_10000.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
             st.session_state.trades = trades
             st.session_state.tickers_dict = tickers_dict
         
@@ -74,6 +76,8 @@ def main():
             st.session_state.selected_rank = st.selectbox('Rank:', [1,2,3,4,5,6,7,8,9,10])
             st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
                     
+                    
+        # ==== TABLE ====
         d1, d2, d3 = st.columns([0.1, 0.8, 0.1])
         with d2:
             filter_trades = utils.compose(
@@ -81,8 +85,9 @@ def main():
             partial(utils.filter_symbols, symbols=st.session_state.symbols), 
             partial(utils.filter_start_date, date=st.session_state.start_date))                       
             st.session_state.filtered_trades = filter_trades(st.session_state.trades)
-            st.dataframe(st.session_state.filtered_trades, use_container_width=True)
+            st.dataframe(st.session_state.filtered_trades.tail(500), use_container_width=True)
                     
+        # ==== Baseline ====
         res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
         with res2:
             st.header(f"Baseline ({len(st.session_state.trades)})")
@@ -91,11 +96,20 @@ def main():
             st.metric('Std',  st.session_state.trades['pnl'].std())
             st.metric('Max open', utils.max_open(st.session_state.trades))
         with res3:
+            st.subheader('Cumulative Equity curve')
+            #TODO
+        
+        # ==== Metric result ====
+        res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
+        with res2:
             st.header(f"Rank {st.session_state.selected_metric} ({len(st.session_state.filtered_trades)})")
             st.subheader('Avg. PnL')
             st.metric('Mean', st.session_state.filtered_trades['pnl'].mean())
             st.metric('Std',  st.session_state.filtered_trades['pnl'].std())
             st.metric('Max open', utils.max_open(st.session_state.filtered_trades))        
+        with res3:
+            st.subheader('Cumulative Equity curve')
+            #TODO
         # t, p-value = stats.ttest_ind(<BASELINE_PNL>, <RANK_PNL>)
         # plot cumsum
     

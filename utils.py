@@ -80,14 +80,20 @@ def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str,
         ticker_df = tickers_dict[row['symbol']]
         start_date = row.name
         for metric in metrics:
-            #row[metric] = 
-            row.loc[metric] = ticker_df.loc[start_date][metric]
+            row[metric] = ticker_df.loc[start_date][metric]
+            #row.loc[metric] = ticker_df.loc[start_date][metric]
         #print(f"{start_date}: added {ticker_df.loc[start_date][metric]} for {row['symbol']}")        
         return row     
     
-    trades = trades.apply(apply_metrics, axis=1)
+    start = perf_counter()
+    trades = trades.apply(apply_metrics, axis=1)    
+    print(f"Apply metrics: {perf_counter() - start:.2f} seconds")
+    start = perf_counter()
     groups = trades.groupby([pd.Grouper(freq='D'), pd.Grouper(freq='15Min')])
+    print(f"Group by: {perf_counter() - start:.2f} seconds")
+    start = perf_counter()
     processed_groups = groups.apply(apply_group_rank).droplevel(0).droplevel(1)
+    print(f"Apply group rank: {perf_counter() - start:.2f} seconds")
     return processed_groups
 
 def max_open(trades: pd.DataFrame) -> int:
