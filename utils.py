@@ -6,7 +6,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
-from functools import wraps
+from functools import reduce, wraps
 from time import perf_counter
 from typing import Callable
 from typing import Tuple
@@ -29,6 +29,11 @@ def p_map(items: List[Any], func: Callable, options: Optional[dict[str, any]] = 
 
 def compose(f, g):
     return lambda *args, **kwargs: f(g(*args, **kwargs))
+
+def composite_function(*func):
+    def compose(f, g):
+        return lambda x : f(g(x))              
+    return reduce(compose, func, lambda x : x)
 
 def filter_dates(start: str, end: str, df: pd.DataFrame) -> pd.DataFrame:
     if start and end:
@@ -68,7 +73,7 @@ def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str,
     processed_groups = groups.apply(apply_group_rank).droplevel(0).droplevel(1)
     return processed_groups
 
-def filter_rank(metric: str, trades: pd.DataFrame, rank: int) -> pd.DataFrame:
+def filter_rank(metric: str, rank: int, trades: pd.DataFrame) -> pd.DataFrame:
     if metric == 'ALL' or metric is None:
         return trades
     return trades.loc[trades[f"{metric}"] <= rank]

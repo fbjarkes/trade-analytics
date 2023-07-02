@@ -63,6 +63,8 @@ RANK_METRICS = [
     #'RSI20',
 ]
 
+SELECTABLE_METRICS = ['ALL'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]    
+
 def index_analysis(metric: str, index: pd.DataFrame, trades: pd.DataFrame) -> Tuple[TradeData, pd.DataFrame]:
     func = INDEX_METRIC_FUNCTIONS[metric]
     func(df=index, metric=metric)
