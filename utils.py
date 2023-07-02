@@ -36,7 +36,8 @@ def filter_dates(start: str, end: str, df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def filter_symbols(symbols: List[str], trades: pd.DataFrame) -> pd.DataFrame:
-    # filter all rows where column symbol is not in symbols list:
+    if len(symbols) == 0:
+        return trades
     filtered_trades = trades[trades['symbol'].isin(symbols)]
     return filtered_trades
 
@@ -68,6 +69,8 @@ def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str,
     return processed_groups
 
 def filter_rank(metric: str, trades: pd.DataFrame, rank: int) -> pd.DataFrame:
+    if metric == 'ALL' or metric is None:
+        return trades
     return trades.loc[trades[f"{metric}"] <= rank]
 
 def parse_json_to_dataframe(symbol: str, path: str) -> pd.DataFrame:
