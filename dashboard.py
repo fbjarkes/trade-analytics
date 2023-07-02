@@ -30,6 +30,7 @@ def parse_uploaded_csv(file):
     #data.name = symbol´
     return data
 
+#TODO: @st.cache
 def load_trades(csv_path: str):
     print(f"Reading trades csv: {csv_path}")
     trades = read_trades_csv(csv_path)
@@ -58,19 +59,21 @@ def init_data(trades_path: str, data_path: str):
     return trades, tickers_dict
 
 def main():
-    st.write('Trade CSV analysis')
-    with st.spinner('Initializing...'):
+    st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
+    with st.spinner('Initializing...'):        
         if 'trades' not in st.session_state and 'tickers_dict' not in st.session_state:
             trades, tickers_dict = init_data('trades_100.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
             st.session_state.trades = trades
             st.session_state.tickers_dict = tickers_dict
         
-        st.session_state.start_date = st.date_input('Start date', value=st.session_state.trades.index[0].date())        
-        #st.session_state.end_date = st.date_input('End date', value=st.session_state.trades.index[-1].date()) 
-        st.session_state.selected_metric = st.selectbox('Rank Metric:', metric.SELECTABLE_METRICS)
-        st.session_state.selected_rank = st.selectbox('Rank:', [1,2,3,4,5,6,7,8,9,10])
-        st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
-        
+        col1, col2, col3 = st.columns([0.3, 0.4, 0.3])
+        with col2:
+            st.session_state.start_date = st.date_input('Start date', value=st.session_state.trades.index[0].date())        
+            #st.session_state.end_date = st.date_input('End date', value=st.session_state.trades.index[-1].date()) 
+            st.session_state.selected_metric = st.selectbox('Rank Metric:', metric.SELECTABLE_METRICS)
+            st.session_state.selected_rank = st.selectbox('Rank:', [1,2,3,4,5,6,7,8,9,10])
+            st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
+            
         
         # Use original trades to run filter in this order:
         # filter_trades = utils.composite_function(
@@ -82,12 +85,24 @@ def main():
         #st.session_state.filtered_trades = rank_filtered
         #st.session_state.filtered_trades = filter_trades(st.session_state.trades)
         st.session_state.filtered_trades = utils.filter_rank(st.session_state.selected_metric, st.session_state.selected_rank, utils.filter_symbols(st.session_state.symbols, utils.filter_start_date(st.session_state.start_date, st.session_state.trades)))
-        max_rows = st.slider('Max Rows:', 1, 100, 10)
-        table = st.table(st.session_state.filtered_trades.head(max_rows)) 
-        #if st.button('Reset'):
-        #    table.data = trades
+        #max_rows = st.slider('Max Rows:', 1, 100, 10)
+        #table = st.table(st.session_state.filtered_trades.head(max_rows))
+        d1, d2, d3 = st.columns([0.1, 0.8, 0.1])
+        with d2:
+            st.dataframe(st.session_state.filtered_trades, use_container_width=True)
             
         #TODO: Add results for the selected RANK_METRIC vs Baseline
+        res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
+        with res2:
+            st.header(f"Baseline ({len(st.session_state.trades)})")
+            st.subheader('Avg. PnL')
+            st.metric('Mean', st.session_state.trades['pnl'].mean())
+            st.metric('Std',  st.session_state.trades['pnl'].std())
+        with res3:
+            st.header(f"Rank {st.session_state.selected_metric} ({len(st.session_state.filtered_trades)})")
+            st.subheader('Avg. PnL')
+            st.metric('Mean', st.session_state.filtered_trades['pnl'].mean())
+            st.metric('Std',  st.session_state.filtered_trades['pnl'].std())
         # number of trades with rank
         # avg pnl with STD
         # How many open simultaneously
