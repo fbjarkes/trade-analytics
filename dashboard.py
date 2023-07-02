@@ -73,25 +73,16 @@ def main():
             st.session_state.selected_metric = st.selectbox('Rank Metric:', metric.SELECTABLE_METRICS)
             st.session_state.selected_rank = st.selectbox('Rank:', [1,2,3,4,5,6,7,8,9,10])
             st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
-            
-        
-        # Use original trades to run filter in this order:
-        # filter_trades = utils.composite_function(
-        #     partial(utils.filter_rank, metric=st.session_state.selected_metric, rank=2), 
-        #     partial(utils.filter_symbols, symbols=st.session_state.symbols), 
-        #     partial(utils.filter_start_date, date=st.session_state.start_date))                       
-        #date_filtered = utils.filter_start_date(st.session_state.start_date, st.session_state.trades)
-        #rank_filtered = utils.filter_rank(st.session_state.selected_metric, date_filtered, rank=2)
-        #st.session_state.filtered_trades = rank_filtered
-        #st.session_state.filtered_trades = filter_trades(st.session_state.trades)
-        st.session_state.filtered_trades = utils.filter_rank(st.session_state.selected_metric, st.session_state.selected_rank, utils.filter_symbols(st.session_state.symbols, utils.filter_start_date(st.session_state.start_date, st.session_state.trades)))
-        #max_rows = st.slider('Max Rows:', 1, 100, 10)
-        #table = st.table(st.session_state.filtered_trades.head(max_rows))
+                    
         d1, d2, d3 = st.columns([0.1, 0.8, 0.1])
         with d2:
+            filter_trades = utils.compose(
+            partial(utils.filter_rank, metric=st.session_state.selected_metric, rank=st.session_state.selected_rank), 
+            partial(utils.filter_symbols, symbols=st.session_state.symbols), 
+            partial(utils.filter_start_date, date=st.session_state.start_date))                       
+            st.session_state.filtered_trades = filter_trades(st.session_state.trades)
             st.dataframe(st.session_state.filtered_trades, use_container_width=True)
-            
-        #TODO: Add results for the selected RANK_METRIC vs Baseline
+                    
         res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
         with res2:
             st.header(f"Baseline ({len(st.session_state.trades)})")

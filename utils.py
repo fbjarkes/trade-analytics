@@ -27,28 +27,45 @@ def p_map(items: List[Any], func: Callable, options: Optional[dict[str, any]] = 
         results = list(executor.map(func, items))
     return results
 
-def compose(f, g):
-    return lambda *args, **kwargs: f(g(*args, **kwargs))
+# def compose(f, g):
+#     return lambda *args, **kwargs: f(g(*args, **kwargs))
 
 def composite_function(*func):
     def compose(f, g):
         return lambda x : f(g(x))              
     return reduce(compose, func, lambda x : x)
 
-def filter_dates(start: str, end: str, df: pd.DataFrame) -> pd.DataFrame:
+def compose(*functions):
+    """
+    Composes multiple functions into a single function from right to left.
+    """
+    return reduce(lambda f, g: lambda x: f(g(x)), reversed(functions))
+
+def pipe(*functions):
+    """
+    Composes multiple functions into a single function from left to right.
+    """
+    return reduce(lambda f, g: lambda x: g(f(x)), functions)
+
+def filter_dates(df: pd.DataFrame, start: str, end: str) -> pd.DataFrame:
     if start and end:
         df = df.loc[start:end]
     return df
 
-def filter_symbols(symbols: List[str], trades: pd.DataFrame) -> pd.DataFrame:
+def filter_symbols(trades: pd.DataFrame, symbols: List[str]) -> pd.DataFrame:
     if not symbols or (len(symbols) == 1 and symbols[0] == ''):
         return trades    
     filtered_trades = trades[trades['symbol'].isin(symbols)]
     return filtered_trades
 
-def filter_start_date(date: str, df: pd.DataFrame) -> pd.DataFrame:
+def filter_start_date(trades: pd.DataFrame, date: str) -> pd.DataFrame:
     starting_date = pd.to_datetime(date)
-    return df[df.index >= starting_date]
+    return trades[trades.index >= starting_date]
+
+def filter_rank(trades: pd.DataFrame, metric: str, rank: int) -> pd.DataFrame:
+    if metric == 'ALL' or metric is None:
+        return trades
+    return trades.loc[trades[f"{metric}"] <= rank]
 
 
 def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str, pd.DataFrame]) -> pd.DataFrame:
@@ -73,10 +90,6 @@ def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str,
     processed_groups = groups.apply(apply_group_rank).droplevel(0).droplevel(1)
     return processed_groups
 
-def filter_rank(metric: str, rank: int, trades: pd.DataFrame) -> pd.DataFrame:
-    if metric == 'ALL' or metric is None:
-        return trades
-    return trades.loc[trades[f"{metric}"] <= rank]
 
 def parse_json_to_dataframe(symbol: str, path: str) -> pd.DataFrame:
     """
