@@ -1,5 +1,6 @@
 import multiprocessing
 from typing import Any, Callable, List, Optional
+from finta import TA
 import numpy as np
 import pandas as pd
 import json
@@ -10,6 +11,15 @@ from functools import reduce, wraps
 from time import perf_counter
 from typing import Callable
 from typing import Tuple
+
+RANK_METRICS = [
+    #'EMA100_DISTANCE',
+    'PRICE',
+    'RSI5',
+    #'RSI10',
+    #'RSI20',
+]
+SELECTABLE_METRICS = ['ALL'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]
 
 def timer(func: Callable) -> Callable:
     @wraps(func)
@@ -227,3 +237,25 @@ def load_json_to_df_threads(symbols: list[str], paths: list[str]) -> list[Option
         results = loop.run_until_complete(asyncio.gather(*tasks))
 
     return results
+
+
+def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
+    for metric in metrics:
+        if metric == 'EMA100_DISTANCE':
+            df[metric] = (df['Close'] - TA.EMA(df, 100)) / TA.ATR(df, 50)
+        if metric == 'PRICE':
+            df[metric] = df['Close']
+        if metric == 'RSI5':
+            df[metric] = TA.RSI(df, 5)
+        if metric == 'RSI10':
+            df[metric] = TA.RSI(df, 10)
+        if metric == 'RSI20':
+            df[metric] = TA.RSI(df, 20)
+    return df
+
+
+def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(apply_rank_metric, dfs))
+    return results
+

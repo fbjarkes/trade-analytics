@@ -6,6 +6,8 @@ import numpy as np
 import scipy.stats as stats
 from finta import TA
 
+from utils import apply_rank_metric
+
 @dataclass
 class TradeData:
     metric: str
@@ -55,16 +57,6 @@ INDEX_METRIC_FUNCTIONS = {
     'CLOSE_EMA_50':  close_ema_50
 }
 
-RANK_METRICS = [
-    #'EMA100_DISTANCE',
-    'PRICE',
-    'RSI5',
-    #'RSI10',
-    #'RSI20',
-]
-
-SELECTABLE_METRICS = ['ALL'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]    
-
 def index_analysis(metric: str, index: pd.DataFrame, trades: pd.DataFrame) -> Tuple[TradeData, pd.DataFrame]:
     func = INDEX_METRIC_FUNCTIONS[metric]
     func(df=index, metric=metric)
@@ -88,21 +80,4 @@ def index_analysis(metric: str, index: pd.DataFrame, trades: pd.DataFrame) -> Tu
     })
     return res, merged_df
 
-def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
-    for metric in metrics:
-        if metric == 'EMA100_DISTANCE':
-            df[metric] = (df['Close'] - TA.EMA(df, 100)) / TA.ATR(df, 50)
-        if metric == 'PRICE':
-            df[metric] = df['Close']
-        if metric == 'RSI5':
-            df[metric] = TA.RSI(df, 5)
-        if metric == 'RSI10':
-            df[metric] = TA.RSI(df, 10)
-        if metric == 'RSI20':
-            df[metric] = TA.RSI(df, 20)
-    return df
 
-def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
-    with ThreadPoolExecutor() as executor:
-        results = list(executor.map(apply_rank_metric, dfs))
-    return results

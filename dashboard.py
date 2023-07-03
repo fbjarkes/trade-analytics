@@ -6,7 +6,6 @@ import plotly.graph_objects as go
 
 from trades_analytics import read_trades_csv
 import utils
-import metric
 
 
 def plot_ohlc_chart(df):
@@ -54,7 +53,7 @@ def init_data(trades_path: str, data_path: str):
     print(f"load_json_to_df_async: {runtime:.2f} seconds")
     
     print(f"Applying metrics to tickers data ({len(tickers_data_df)})")
-    tickers_data_df, runtime = utils.p_map(tickers_data_df, partial(metric.apply_rank_metric, metrics=metric.RANK_METRICS))
+    tickers_data_df, runtime = utils.p_map(tickers_data_df, partial(utils.apply_rank_metric, metrics=utils.RANK_METRICS))
     print()
     print(f"p_map: {runtime:.2f} seconds")
     sum = 0   
@@ -64,7 +63,7 @@ def init_data(trades_path: str, data_path: str):
     tickers_dict = {df.name: df for df in tickers_data_df} 
     
     print(f"Applying metrics to trades data ({len(trades)})")
-    trades = utils.apply_rank(metric.RANK_METRICS, trades, tickers_dict)
+    trades = utils.apply_rank(utils.RANK_METRICS, trades, tickers_dict)
     
     return trades, tickers_dict
 
@@ -81,7 +80,7 @@ def main():
         with col2:
             st.session_state.start_date = st.date_input('Start date', value=st.session_state.trades.index[0].date())        
             st.session_state.end_date = st.date_input('End date', value=st.session_state.trades.index[-1].date())  # NOTE: just use last start date
-            st.session_state.selected_metric = st.selectbox('Rank Metric:', metric.SELECTABLE_METRICS)
+            st.session_state.selected_metric = st.selectbox('Rank Metric:', utils.SELECTABLE_METRICS)
             st.session_state.selected_rank = st.selectbox('Rank:', [1,2,3,4,5,6,7,8,9,10])
             st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
                     
