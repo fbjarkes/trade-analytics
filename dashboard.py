@@ -1,4 +1,5 @@
 from functools import partial
+import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
@@ -25,11 +26,9 @@ def parse_uploaded_csv(file):
     data = pd.read_csv(file)    
     data['time'] = pd.to_datetime(data['time'], unit='s')
     data.set_index('time', inplace=True)
-    data = data.resample('D').ffill() # TODO: best way to remove the time part of DateTimeIndex?
-    # filter date from 2020-01-01
-    data = data.loc['2020-01-01':]
-    #data.name = symbol´
-    return data
+    data = data.resample('D').ffill() # TODO: best way to remove the time part of DateTimeIndex?    
+    name = file.name.split('.')[0].upper()
+    return data, name
 
 @st.cache_data 
 def load_trades(csv_path: str):
@@ -41,6 +40,15 @@ def load_trades(csv_path: str):
 def init_data(trades_path: str, data_path: str):
     trades = load_trades(trades_path)      
     tickers = trades['symbol'].unique()
+    
+    ### DEBUG
+    # 100 random tickers
+    tickers = np.random.choice(tickers, 100, replace=False)
+    print(f"Randomly selected {len(tickers)} tickers:", tickers)
+    # filter trades by tickers
+    trades = trades[trades['symbol'].isin(tickers)]
+    ### 
+         
     print(f"Loading data from '{data_path}' for {len(tickers)} tickers")
     tickers_data_df, runtime =  utils.load_json_to_df_async(data_path, tickers)
     print(f"load_json_to_df_async: {runtime:.2f} seconds")
@@ -64,14 +72,15 @@ def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
     with st.spinner('Initializing...'):        
         if 'trades' not in st.session_state and 'tickers_dict' not in st.session_state:
-            trades, tickers_dict = init_data('trades_10000.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
+            trades, tickers_dict = init_data('bbrev_trades.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
             st.session_state.trades = trades
             st.session_state.tickers_dict = tickers_dict
         
+        # ==== Filter inputs ====
         col1, col2, col3 = st.columns([0.3, 0.4, 0.3])
         with col2:
             st.session_state.start_date = st.date_input('Start date', value=st.session_state.trades.index[0].date())        
-            #st.session_state.end_date = st.date_input('End date', value=st.session_state.trades.index[-1].date()) 
+            st.session_state.end_date = st.date_input('End date', value=st.session_state.trades.index[-1].date())  # NOTE: just use last start date
             st.session_state.selected_metric = st.selectbox('Rank Metric:', metric.SELECTABLE_METRICS)
             st.session_state.selected_rank = st.selectbox('Rank:', [1,2,3,4,5,6,7,8,9,10])
             st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
@@ -114,7 +123,24 @@ def main():
                 st.line_chart(st.session_state.filtered_trades['pnl'].cumsum())
         # t, p-value = stats.ttest_ind(<BASELINE_PNL>, <RANK_PNL>)
         # plot cumsum
-    
+
+        # ==== Index compare ====
+        col1, col2, col3 = st.columns([0.3, 0.4, 0.3])
+        with col2:
+            uploaded_file = st.sidebar.file_uploader('Upload OHLC CSV file:')
+            if uploaded_file is not None:
+                df, name = parse_uploaded_csv(uploaded_file)
+                print(f"Filtering {name} with start date {st.session_state.start_date}")
+                df = df.loc[st.session_state.start_date:st.session_state.end_date]
+                df = df[['close']]
+                df.rename(columns={'close': name}, inplace=True)
+                
+                # TODO: resample to daily and plot with different axis
+                #cum_sum = st.session_state.filtered_trades['pnl'].cumsum().resample('D').sum()                        
+                #df[f"Rank {st.session_state.selected_metric} EQ"] = cum_sum                
+                st.line_chart(df)
+
+        #ind1, ind2, ind3 = st.columns([0.2, 0.6, 0.2])
 
  # Upload another CSV file for the OHLC chart
 # uploaded_file = st.sidebar.file_uploader('Upload OHLC CSV file:')
