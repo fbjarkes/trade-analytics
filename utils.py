@@ -113,6 +113,18 @@ def max_open(trades: pd.DataFrame) -> int:
         max_in_progress = max(max_in_progress, in_progress)
     return max_in_progress
 
+def read_trades_csv(path: str) -> pd.DataFrame:
+    # Columns: ts, symbol, start_date, end_date, pnl, value
+    trades_df = pd.read_csv(path)
+    trades_df['time'] = pd.to_datetime(trades_df['ts'], unit='s')
+    trades_df['start_date'] = pd.to_datetime(trades_df['start_date'])
+    trades_df['end_date'] = pd.to_datetime(trades_df['end_date'])
+    trades_df.set_index('start_date', inplace=True)
+    # sort on start_date
+    trades_df.sort_index(inplace=True)
+    print(f"Read {len(trades_df)} trades from '{path}'")
+    return trades_df
+
 def parse_json_to_dataframe(symbol: str, path: str) -> pd.DataFrame:
     """
     Alpaca json data

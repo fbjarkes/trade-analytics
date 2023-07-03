@@ -4,7 +4,6 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
-from trades_analytics import read_trades_csv
 import utils
 
 
@@ -32,7 +31,7 @@ def parse_uploaded_csv(file):
 @st.cache_data 
 def load_trades(csv_path: str):
     print(f"Reading trades csv: {csv_path}")
-    trades = read_trades_csv(csv_path)
+    trades = utils.read_trades_csv(csv_path)
     return trades
 
 @st.cache_data 
