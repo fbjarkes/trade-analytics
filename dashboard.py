@@ -41,28 +41,31 @@ def init_data(trades_path: str, data_path: str):
     
     ### DEBUG
     # 100 random tickers
-    tickers = np.random.choice(tickers, 100, replace=False)
-    print(f"Randomly selected {len(tickers)} tickers:", tickers)
+    #tickers = np.random.choice(tickers, 100, replace=False)
+    #print(f"Randomly selected {len(tickers)} tickers:", tickers)
     # filter trades by tickers
-    trades = trades[trades['symbol'].isin(tickers)]
+    #trades = trades[trades['symbol'].isin(tickers)]
     ### 
-         
-    print(f"Loading data from '{data_path}' for {len(tickers)} tickers")
-    tickers_data_df, runtime =  utils.load_json_to_df_async(data_path, tickers)
-    print(f"load_json_to_df_async: {runtime:.2f} seconds")
     
-    print(f"Applying metrics to tickers data ({len(tickers_data_df)})")
-    tickers_data_df, runtime = utils.p_map(tickers_data_df, partial(utils.apply_rank_metric, metrics=utils.RANK_METRICS))
-    print()
-    print(f"p_map: {runtime:.2f} seconds")
-    sum = 0   
-    for df in tickers_data_df:
-        sum += df.memory_usage().sum()
-    print(f"Total memory usage: {sum/1000/1000:.1f} MB for {len(tickers_data_df)} tickers") 
-    tickers_dict = {df.name: df for df in tickers_data_df} 
+    if data_path:
+        print(f"Loading data from '{data_path}' for {len(tickers)} tickers")
+        tickers_data_df, runtime =  utils.load_json_to_df_async(data_path, tickers)
+        print(f"load_json_to_df_async: {runtime:.2f} seconds")
     
-    print(f"Applying metrics to trades data ({len(trades)})")
-    trades = utils.apply_rank(utils.RANK_METRICS, trades, tickers_dict)
+        print(f"Applying metrics to tickers data ({len(tickers_data_df)})")
+        tickers_data_df, runtime = utils.p_map(tickers_data_df, partial(utils.apply_rank_metric, metrics=utils.RANK_METRICS))
+        print()
+        print(f"p_map: {runtime:.2f} seconds")
+        sum = 0   
+        for df in tickers_data_df:
+            sum += df.memory_usage().sum()
+        print(f"Total memory usage: {sum/1000/1000:.1f} MB for {len(tickers_data_df)} tickers") 
+        tickers_dict = {df.name: df for df in tickers_data_df} 
+    
+        print(f"Applying metrics to trades data ({len(trades)})")
+        trades = utils.apply_rank(utils.RANK_METRICS, trades, tickers_dict)
+    else:
+        tickers_dict = {}
     
     return trades, tickers_dict
 
@@ -70,17 +73,18 @@ def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
     with st.spinner('Initializing...'):        
         if 'trades' not in st.session_state and 'tickers_dict' not in st.session_state:
-            trades, tickers_dict = init_data('bbrev_trades.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
+            #trades, tickers_dict = init_data('bbrev_trades.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
+            trades, tickers_dict = init_data('trades/EMA10_MR_Simple_10Perc_10EMA_Exit_trades.csv', '')
             st.session_state.trades = trades
             st.session_state.tickers_dict = tickers_dict
         
         # ==== Filter inputs ====
         col1, col2, col3 = st.columns([0.3, 0.4, 0.3])
         with col2:
-            st.session_state.start_date = st.date_input('Start date', value=st.session_state.trades.index[0].date())        
-            st.session_state.end_date = st.date_input('End date', value=st.session_state.trades.index[-1].date())  # NOTE: just use last start date
-            st.session_state.selected_metric = st.selectbox('Rank Metric:', utils.SELECTABLE_METRICS)
-            st.session_state.selected_rank = st.selectbox('Rank:', [1,2,3,4,5,6,7,8,9,10])
+            st.session_state.start_date = st.date_input('Filter Start Date', value=st.session_state.trades.index[0].date())        
+            st.session_state.end_date = st.date_input('Filter End Date', value=st.session_state.trades.index[-1].date())  # NOTE: just use last start date
+            st.session_state.selected_metric = st.selectbox('Select Rank Metric:', utils.SELECTABLE_METRICS)
+            st.session_state.selected_rank = st.selectbox('Select Top Ranked:', [1,2,3,4,5,6,7,8,9,10])
             st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
                     
                     
@@ -90,7 +94,8 @@ def main():
             filter_trades = utils.compose(
             partial(utils.filter_rank, metric=st.session_state.selected_metric, rank=st.session_state.selected_rank), 
             partial(utils.filter_symbols, symbols=st.session_state.symbols), 
-            partial(utils.filter_start_date, date=st.session_state.start_date))                       
+            partial(utils.filter_start_date, date=st.session_state.start_date))
+                                   
             st.session_state.filtered_trades = filter_trades(st.session_state.trades)
             st.dataframe(st.session_state.filtered_trades.tail(500), use_container_width=True)
                     
@@ -133,10 +138,13 @@ def main():
                 df = df[['close']]
                 df.rename(columns={'close': name}, inplace=True)
                 
+                #TODO: resample pnl series to daily and create 10 bucket sizes of number of trades
+                # print IWM df with nbr_trades added as new column
+                
                 # TODO: resample to daily and plot with different axis
                 #cum_sum = st.session_state.filtered_trades['pnl'].cumsum().resample('D').sum()                        
                 #df[f"Rank {st.session_state.selected_metric} EQ"] = cum_sum                
-                st.line_chart(df)
+                #st.line_chart(df)
 
         #ind1, ind2, ind3 = st.columns([0.2, 0.6, 0.2])
 

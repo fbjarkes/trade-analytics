@@ -6,6 +6,8 @@ import pandas as pd
 import json
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
+import streamlit as st
+
 
 from functools import reduce, wraps
 from time import perf_counter
@@ -75,7 +77,11 @@ def filter_start_date(trades: pd.DataFrame, date: str) -> pd.DataFrame:
 def filter_rank(trades: pd.DataFrame, metric: str, rank: int) -> pd.DataFrame:
     if metric == 'ALL' or metric is None:
         return trades
-    return trades.loc[trades[f"{metric}"] <= rank]
+    try: 
+        return trades.loc[trades[f"{metric}"] <= rank]
+    except KeyError as e:
+        st.error(f"Missing rank '{metric}' in trades")
+        return trades
 
 def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str, pd.DataFrame]) -> pd.DataFrame:
     def apply_group_rank(group):
