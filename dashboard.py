@@ -76,6 +76,7 @@ def main():
             #trades, tickers_dict = init_data('bbrev_trades.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
             trades, tickers_dict = init_data('trades/EMA10_MR_Simple_10Perc_10EMA_Exit_trades.csv', '')
             st.session_state.trades = trades
+            st.session_state.timeframe = 'day'  # TODO: calculate from trades
             st.session_state.tickers_dict = tickers_dict
         
         # ==== Filter inputs ====
@@ -119,7 +120,7 @@ def main():
             st.subheader('Avg. PnL')
             st.metric('Mean', st.session_state.filtered_trades['pnl'].mean())
             st.metric('Std',  st.session_state.filtered_trades['pnl'].std())
-            st.metric('Max open', utils.max_open(st.session_state.filtered_trades))        
+            st.metric('Max open', utils.max_open(st.session_state.filtered_trades))       
         with res3:
             st.subheader('Cumulative Equity curve')
             with st.spinner('Loading chart'):

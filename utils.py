@@ -21,7 +21,7 @@ RANK_METRICS = [
     #'RSI10',
     #'RSI20',
 ]
-SELECTABLE_METRICS = ['ALL'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]
+SELECTABLE_METRICS = ['ALL', 'RANDOM'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]
 
 def timer(func: Callable) -> Callable:
     @wraps(func)
@@ -77,11 +77,24 @@ def filter_start_date(trades: pd.DataFrame, date: str) -> pd.DataFrame:
 def filter_rank(trades: pd.DataFrame, metric: str, rank: int) -> pd.DataFrame:
     if metric == 'ALL' or metric is None:
         return trades
-    try: 
-        return trades.loc[trades[f"{metric}"] <= rank]
-    except KeyError as e:
-        st.error(f"Missing rank '{metric}' in trades")
+    elif metric == 'RANDOM':
+        if st.session_state.timeframe != 'day':
+            st.error(f"Random metric not implemented for tf {st.session_state.timeframe}")
+            return trades
+        def select_random(group):
+            if not group.empty:
+                return group.sample(n=min(rank, len(group)))
+            else: 
+                return group         
+        groups = trades.groupby([pd.Grouper(freq='D')])        
+        trades = groups.apply(select_random).droplevel(0)        
         return trades
+    else:
+        try: 
+            return trades.loc[trades[f"{metric}"] <= rank]
+        except KeyError as e:
+            st.error(f"Missing rank '{metric}' in trades")
+            return trades
 
 def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str, pd.DataFrame]) -> pd.DataFrame:
     def apply_group_rank(group):
