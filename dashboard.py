@@ -1,6 +1,7 @@
 from functools import partial
 import numpy as np
 import pandas as pd
+from scipy import stats
 import streamlit as st
 import plotly.graph_objects as go
 
@@ -104,7 +105,7 @@ def main():
         res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
         with res2:
             st.header(f"Baseline ({len(st.session_state.trades)})")
-            st.subheader('Avg. PnL')
+            st.subheader('Average PnL stats:')
             st.metric('Mean', st.session_state.trades['pnl'].mean())
             st.metric('Std',  st.session_state.trades['pnl'].std())
             st.metric('Max open', utils.max_open(st.session_state.trades))
@@ -117,16 +118,18 @@ def main():
         res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
         with res2:
             st.header(f"Rank {st.session_state.selected_metric} ({len(st.session_state.filtered_trades)})")
-            st.subheader('Avg. PnL')
+            st.subheader('Average PnL stats:')
             st.metric('Mean', st.session_state.filtered_trades['pnl'].mean())
             st.metric('Std',  st.session_state.filtered_trades['pnl'].std())
-            st.metric('Max open', utils.max_open(st.session_state.filtered_trades))       
+            st.metric('Max open', utils.max_open(st.session_state.filtered_trades))
+            t, p_value = stats.ttest_ind(st.session_state.trades['pnl'], st.session_state.filtered_trades['pnl'])
+            st.metric('t-value', t)
+            st.metric('p-value', p_value)
         with res3:
             st.subheader('Cumulative Equity curve')
             with st.spinner('Loading chart'):
                 st.line_chart(st.session_state.filtered_trades['pnl'].cumsum())
-        # t, p-value = stats.ttest_ind(<BASELINE_PNL>, <RANK_PNL>)
-        # plot cumsum
+        
 
         # ==== Index compare ====
         col1, col2, col3 = st.columns([0.3, 0.4, 0.3])
