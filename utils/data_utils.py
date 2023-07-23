@@ -8,7 +8,7 @@ import pandas as pd
 import asyncio
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 # def json_to_df(symbol: str, path: str) -> pd.DataFrame:  
@@ -46,9 +46,31 @@ def process_json_data(data: dict, symbol: str) -> pd.DataFrame:
         return df
     else:
         print(f"Symbol {symbol} not found in the json")
+        
+def process_csv_data(path: str, symbol) -> pd.DataFrame:
+    
+    # columns = ['time','open','high','low','close', 'volume']
+    # df = pd.read_csv(f, dtype={self.col_names[1]: np.float32, self.col_names[2]: np.float32,
+    #                                                    self.col_names[3]: np.float32,
+    #                                                    self.col_names[4]: np.float32, self.col_names[5]: np.float32},
+    #                                          parse_dates=not self.epoch, index_col=self.col_names[0])
+    #                         df = df.sort_index()
+    #                         if self.epoch:
+    #                             # df.index = pd.to_datetime(df.index, unit='s')
+    #                             df.index = pd.to_datetime(df.index, unit='s', utc=True).tz_convert(self.tz).tz_localize(
+    #                                 None)
+    try:
+        df = pd.read_csv(path, index_col='time', parse_dates=False, usecols=['time', 'open', 'high', 'low', 'close', 'Volume'])
+        #df.index = pd.to_datetime(df.index, unit='s', utc=True).tz_convert('Americ/New_York').tz_localize(None)
+        df.index = pd.to_datetime(df.index, unit='s', utc=True)
+        df.rename(columns={'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close'}, inplace=True)      
+        df.name = symbol
+        print(f"{len(df)} rows for {symbol}")
+        return df
+    except Exception as e:
+        print(f"Error parsing csv '{path}': {e}")
 
-
-def load_json_data(symbol: str, path: str) -> Optional[dict]:
+def load_json_data(symbol: str, path: str) -> Optional[Dict]:
     with open(path) as f:
         json_data = json.load(f)
         return json_data.get(symbol)
@@ -92,6 +114,13 @@ def load_json_to_df_async(root_path: str, symbols: list[str]) -> list[Optional[p
 
     return asyncio.run(load_files())
 
+@timer
+def load_tv_csv_to_df(root_path: str, symbols: list[str]) -> List[Optional[pd.DataFrame]]:
+    dfs = []
+    for symbol in symbols:
+        df = process_csv_data(f"{root_path}/{symbol}.csv", symbol)
+        dfs.append(df)
+    return dfs
 
 def json_to_df(symbol: str, path: str) -> Optional[pd.DataFrame]:
     data = load_json_data(symbol, path)
@@ -157,7 +186,7 @@ def read_trades_csv(path: str) -> pd.DataFrame:
     # Columns: ts, symbol, start_date, end_date, pnl, value
     trades_df = pd.read_csv(path)
     trades_df['time'] = pd.to_datetime(trades_df['ts'], unit='s')
-    trades_df['start_date'] = pd.to_datetime(trades_df['start_date'])
+    trades_df['start_date'] = pd.to_datetime(trades_df['start_date']) 
     trades_df['end_date'] = pd.to_datetime(trades_df['end_date'])
     trades_df.set_index('start_date', inplace=True)
     # sort on start_date

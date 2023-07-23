@@ -20,7 +20,7 @@ def load_trades(csv_path: str):
     return trades
 
 @st.cache_data 
-def init_data(trades_path: str, data_path: str):
+def init_data(trades_path: str, data_path: str, provider='alpaca'):
     trades = load_trades(trades_path)      
     tickers = trades['symbol'].unique()
     
@@ -34,10 +34,15 @@ def init_data(trades_path: str, data_path: str):
     
     if data_path:
         try: 
-            print(f"Loading data from '{data_path}' for {len(tickers)} tickers")
-            tickers_data_df, runtime = data_utils.load_json_to_df_async(data_path, tickers)
-            print(f"load_json_to_df_async: {runtime:.2f} seconds")
-        
+            print(f"Loading data from '{data_path}' for {len(tickers)} tickers (provider={provider})")
+            if provider == 'alpaca':            
+                tickers_data_df, runtime = data_utils.load_json_to_df_async(data_path, tickers)      
+            elif provider == 'tv':
+                tickers_data_df, runtime = data_utils.load_tv_csv_to_df(data_path, tickers)
+            else:
+                raise Exception(f"Unknown provider: {provider}")
+            print(f"load_json_to_df_async: {runtime:.2f} seconds")        
+            
             print(f"Applying metrics to tickers data ({len(tickers_data_df)})")
             tickers_data_df, runtime = func_utils.p_map(tickers_data_df, partial(stats_utils.apply_rank_metric, metrics=stats_utils.RANK_METRICS))
             print()
@@ -51,6 +56,9 @@ def init_data(trades_path: str, data_path: str):
             print(f"Applying metrics to trades data ({len(trades)})")
             trades = stats_utils.apply_rank(stats_utils.RANK_METRICS, trades, tickers_dict)
         except Exception as e:
+            # print stack trace:
+            import traceback
+            traceback.print_exc()            
             print(f"Error loading data: {e}")            
             tickers_dict = {}
     else:
@@ -62,12 +70,12 @@ def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
     st.session_state.start_eq = 10000
     #trades_file = '/Users/fbjarkes/git/trading-tools/test_trades.csv'
-    tickers_data_path = '/Users/fbjarkes/Bardata/alpaca-v2/day'
+    tickers_data_path = '/Users/fbjarkes/Bardata/tradingview/day'
     # ==== CSV files upload ====
     st.sidebar.markdown(f"## Upload files")
     trades_csv_data = st.sidebar.file_uploader(f"Trades CSV", type=['csv'])
     if trades_csv_data:
-        trades, tickers_dict = init_data(trades_csv_data, tickers_data_path)
+        trades, tickers_dict = init_data(trades_csv_data, tickers_data_path, provider='tv')
         st.session_state.trades = trades
         st.session_state.timeframe = 'day'  # TODO: calculate from trades
         st.session_state.tickers_dict = tickers_dict
