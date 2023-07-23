@@ -1,5 +1,5 @@
 import json
-from utils.utils import timer
+from utils.func_utils import timer
 
 
 import pandas as pd

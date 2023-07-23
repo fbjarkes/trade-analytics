@@ -7,7 +7,7 @@ import streamlit as st
 import plotly.graph_objects as go
 import utils.stats_utils as stats_utils
 import utils.data_utils as data_utils
-import utils.utils as utils
+import utils.func_utils as func_utils
 
 NO_TRADES_DF = pd.DataFrame(columns=['symbol', 'entry_date', 'exit_date', 'entry_price', 'exit_price', 'pnl'])
 
@@ -39,7 +39,7 @@ def init_data(trades_path: str, data_path: str):
             print(f"load_json_to_df_async: {runtime:.2f} seconds")
         
             print(f"Applying metrics to tickers data ({len(tickers_data_df)})")
-            tickers_data_df, runtime = utils.p_map(tickers_data_df, partial(stats_utils.apply_rank_metric, metrics=stats_utils.RANK_METRICS))
+            tickers_data_df, runtime = func_utils.p_map(tickers_data_df, partial(stats_utils.apply_rank_metric, metrics=stats_utils.RANK_METRICS))
             print()
             print(f"p_map: {runtime:.2f} seconds")
             sum = 0   
@@ -98,7 +98,7 @@ def main():
         st.session_state.table_row_first = st.text_input('First row', value=len(st.session_state.filtered_trades)-500)
         st.session_state.table_row_last = st.text_input('Last row', value=len(st.session_state.filtered_trades))
         
-    filter_trades = utils.compose(
+    filter_trades = func_utils.compose(
         partial(stats_utils.filter_rank, metric=st.session_state.selected_metric, rank=st.session_state.selected_rank), 
         partial(stats_utils.filter_symbols, symbols=st.session_state.symbols), 
         partial(stats_utils.filter_start_date, date=st.session_state.start_date))
