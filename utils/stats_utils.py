@@ -47,7 +47,7 @@ def get_trade_stats(df: pd.DataFrame, start_eq: float) -> Tuple[Dict[str, Any], 
             'Max Exposure': 0}, cum_sum
 
 
-def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
+def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:    
     for metric in metrics:
         if metric == 'EMA100_DISTANCE':
             df[metric] = (df['Close'] - TA.EMA(df, 100)) / TA.ATR(df, 50)
@@ -80,6 +80,7 @@ def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str,
     def apply_metrics(row):
         ticker_df = tickers_dict[row['symbol']]
         start_date = row.name
+        
         for metric in metrics:
             row[metric] = ticker_df.loc[start_date][metric]
             #row.loc[metric] = ticker_df.loc[start_date][metric]

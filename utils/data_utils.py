@@ -40,6 +40,7 @@ def process_json_data(data: dict, symbol: str) -> pd.DataFrame:
         df = pd.DataFrame(data, columns=['DateTime', 'Open', 'High', 'Low', 'Close', 'Volume'])
         df.set_index('DateTime', inplace=True)
         # TODO: add freq?
+        # Convert to Wall Street time since all trades have start/dates in Wall Street time
         df.index = pd.to_datetime(df.index, utc=True).tz_convert('America/New_York').tz_localize(None)
         #TODO: remove extended hours?
         df.name = symbol
@@ -48,21 +49,10 @@ def process_json_data(data: dict, symbol: str) -> pd.DataFrame:
         print(f"Symbol {symbol} not found in the json")
         
 def process_csv_data(path: str, symbol) -> pd.DataFrame:
-    
-    # columns = ['time','open','high','low','close', 'volume']
-    # df = pd.read_csv(f, dtype={self.col_names[1]: np.float32, self.col_names[2]: np.float32,
-    #                                                    self.col_names[3]: np.float32,
-    #                                                    self.col_names[4]: np.float32, self.col_names[5]: np.float32},
-    #                                          parse_dates=not self.epoch, index_col=self.col_names[0])
-    #                         df = df.sort_index()
-    #                         if self.epoch:
-    #                             # df.index = pd.to_datetime(df.index, unit='s')
-    #                             df.index = pd.to_datetime(df.index, unit='s', utc=True).tz_convert(self.tz).tz_localize(
-    #                                 None)
     try:
         df = pd.read_csv(path, index_col='time', parse_dates=False, usecols=['time', 'open', 'high', 'low', 'close', 'Volume'])
-        #df.index = pd.to_datetime(df.index, unit='s', utc=True).tz_convert('Americ/New_York').tz_localize(None)
-        df.index = pd.to_datetime(df.index, unit='s', utc=True)
+        # Convert to Wall Street time since all trades have start/dates in Wall Street time
+        df.index = pd.to_datetime(df.index, unit='s', utc=True).tz_convert('America/New_York').tz_localize(None)
         df.rename(columns={'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close'}, inplace=True)      
         df.name = symbol
         print(f"{len(df)} rows for {symbol}")
@@ -183,12 +173,14 @@ def parse_json_to_dataframe(symbol: str, path: str) -> pd.DataFrame:
 
 
 def read_trades_csv(path: str) -> pd.DataFrame:
+    # Note: datetimes are in America/New_York timezone (not tz aware)
     # Columns: ts, symbol, start_date, end_date, pnl, value
-    trades_df = pd.read_csv(path)
+    trades_df = pd.read_csv(path)    
     trades_df['time'] = pd.to_datetime(trades_df['ts'], unit='s')
-    trades_df['start_date'] = pd.to_datetime(trades_df['start_date']) 
+    trades_df['start_date'] = pd.to_datetime(trades_df['start_date'])
     trades_df['end_date'] = pd.to_datetime(trades_df['end_date'])
     trades_df.set_index('start_date', inplace=True)
+    
     # sort on start_date
     trades_df.sort_index(inplace=True)
     print(f"Read {len(trades_df)} trades from '{path}'")
