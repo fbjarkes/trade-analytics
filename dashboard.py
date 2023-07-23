@@ -77,7 +77,7 @@ def init_data(trades_path: str, data_path: str):
 def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
     st.session_state.start_eq = 10000
-    trades_file = '/Users/fbjarkes/git/trading-tools/test_trades.csv'
+    #trades_file = '/Users/fbjarkes/git/trading-tools/test_trades.csv'
         
     # with st.spinner('Initializing...'):        
     #     if 'trades' not in st.session_state and 'tickers_dict' not in st.session_state:
@@ -89,16 +89,18 @@ def main():
     
     # ==== CSV files upload ====
     st.sidebar.markdown(f"## Upload files")
-    trades_csv = st.sidebar.file_uploader(f"Trades CSV", type=['csv'])
-    if trades_csv:
-        trades, tickers_dict = init_data(trades_file, '')
+    trades_csv_data = st.sidebar.file_uploader(f"Trades CSV", type=['csv'])
+    if trades_csv_data:
+        trades, tickers_dict = init_data(trades_csv_data, '')
         st.session_state.trades = trades
         st.session_state.timeframe = 'day'  # TODO: calculate from trades
         st.session_state.tickers_dict = tickers_dict
+        st.sidebar.text(f"File '{trades_csv_data.name}'")
     else:
         st.session_state.tickers_dict = {}
         st.session_state.trades = NO_TRADES_DF
         st.session_state.timeframe = 'day'
+        st.sidebar.text('No file selected')
             
     
     # ==== Filter inputs ====
@@ -128,16 +130,19 @@ def main():
                 
     # ==== TABLE ====
     d1, d2, d3 = st.columns([0.1, 0.8, 0.1])
-    with d2:        
-        st.dataframe(st.session_state.filtered_trades.tail(500), use_container_width=True)
+    with d2:
+        if st.session_state.filtered_trades.empty:        
+            #st.dataframe(NO_TRADES_DF, use_container_width=True)        
+            st.write('No trades found')
+        else:
+            st.dataframe(st.session_state.filtered_trades.tail(500), use_container_width=True)
                 
     # ==== Baseline ====
     res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])    
     #TODO: should sort by end date here   
     #cum_sum = st.session_state.trades['pnl'].cumsum()
     trade_stats, cum_sum = utils.trade_stats(st.session_state.trades)
-    with res2:
-        st.text(f"Stats for '{trades_file}'")
+    with res2:        
         st.header(f"Baseline ({len(st.session_state.trades)})")
         st.subheader('Average PnL stats:')
         for key, value in trade_stats.items():
