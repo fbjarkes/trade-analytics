@@ -53,22 +53,26 @@ def init_data(trades_path: str, data_path: str):
     ### 
     
     if data_path:
-        print(f"Loading data from '{data_path}' for {len(tickers)} tickers")
-        tickers_data_df, runtime =  utils.load_json_to_df_async(data_path, tickers)
-        print(f"load_json_to_df_async: {runtime:.2f} seconds")
-    
-        print(f"Applying metrics to tickers data ({len(tickers_data_df)})")
-        tickers_data_df, runtime = utils.p_map(tickers_data_df, partial(utils.apply_rank_metric, metrics=utils.RANK_METRICS))
-        print()
-        print(f"p_map: {runtime:.2f} seconds")
-        sum = 0   
-        for df in tickers_data_df:
-            sum += df.memory_usage().sum()
-        print(f"Total memory usage: {sum/1000/1000:.1f} MB for {len(tickers_data_df)} tickers") 
-        tickers_dict = {df.name: df for df in tickers_data_df} 
-    
-        print(f"Applying metrics to trades data ({len(trades)})")
-        trades = utils.apply_rank(utils.RANK_METRICS, trades, tickers_dict)
+        try: 
+            print(f"Loading data from '{data_path}' for {len(tickers)} tickers")
+            tickers_data_df, runtime =  utils.load_json_to_df_async(data_path, tickers)
+            print(f"load_json_to_df_async: {runtime:.2f} seconds")
+        
+            print(f"Applying metrics to tickers data ({len(tickers_data_df)})")
+            tickers_data_df, runtime = utils.p_map(tickers_data_df, partial(utils.apply_rank_metric, metrics=utils.RANK_METRICS))
+            print()
+            print(f"p_map: {runtime:.2f} seconds")
+            sum = 0   
+            for df in tickers_data_df:
+                sum += df.memory_usage().sum()
+            print(f"Total memory usage: {sum/1000/1000:.1f} MB for {len(tickers_data_df)} tickers") 
+            tickers_dict = {df.name: df for df in tickers_data_df} 
+        
+            print(f"Applying metrics to trades data ({len(trades)})")
+            trades = utils.apply_rank(utils.RANK_METRICS, trades, tickers_dict)
+        except Exception as e:
+            print(f"Error loading data: {e}")            
+            tickers_dict = {}
     else:
         tickers_dict = {}
     
@@ -78,12 +82,12 @@ def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
     st.session_state.start_eq = 10000
     #trades_file = '/Users/fbjarkes/git/trading-tools/test_trades.csv'
-    
+    tickers_data_path = '/Users/fbjarkes/Bardata/alpaca-v2/day'
     # ==== CSV files upload ====
     st.sidebar.markdown(f"## Upload files")
     trades_csv_data = st.sidebar.file_uploader(f"Trades CSV", type=['csv'])
     if trades_csv_data:
-        trades, tickers_dict = init_data(trades_csv_data, '')
+        trades, tickers_dict = init_data(trades_csv_data, tickers_data_path)
         st.session_state.trades = trades
         st.session_state.timeframe = 'day'  # TODO: calculate from trades
         st.session_state.tickers_dict = tickers_dict
@@ -109,7 +113,7 @@ def main():
         st.session_state.selected_metric = st.selectbox('Select Rank Metric:', utils.SELECTABLE_METRICS)
         st.session_state.selected_rank = st.selectbox('Select Top Ranked:', [1,2,3,4,5,6,7,8,9,10])
         st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
-    
+        
         
     filter_trades = utils.compose(
         partial(utils.filter_rank, metric=st.session_state.selected_metric, rank=st.session_state.selected_rank), 
