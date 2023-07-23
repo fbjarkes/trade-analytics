@@ -113,7 +113,9 @@ def main():
         st.session_state.selected_metric = st.selectbox('Select Rank Metric:', utils.SELECTABLE_METRICS)
         st.session_state.selected_rank = st.selectbox('Select Top Ranked:', [1,2,3,4,5,6,7,8,9,10])
         st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
-        
+        st.write(f"View trades by row numbers ({len(st.session_state.filtered_trades)} rows):")
+        st.session_state.table_row_first = int(st.text_input('First row', value=len(st.session_state.filtered_trades)-500))
+        st.session_state.table_row_last = int(st.text_input('Last row', value=len(st.session_state.filtered_trades)))
         
     filter_trades = utils.compose(
         partial(utils.filter_rank, metric=st.session_state.selected_metric, rank=st.session_state.selected_rank), 
@@ -131,7 +133,8 @@ def main():
             #st.dataframe(NO_TRADES_DF, use_container_width=True)        
             st.write('No trades found')
         else:
-            st.dataframe(st.session_state.filtered_trades.tail(500), use_container_width=True)
+            #TODO: need to set a max size?
+            st.dataframe(st.session_state.filtered_trades.iloc[st.session_state.table_row_first:st.session_state.table_row_last-1], use_container_width=True)
                 
     # ==== Baseline ====
     res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])    
