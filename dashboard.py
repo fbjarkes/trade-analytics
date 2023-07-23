@@ -107,15 +107,15 @@ def main():
                 
     # ==== Baseline ====
     res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
-    cum_sum = st.session_state.trades['pnl'].cumsum() #TODO: should sort by end date here
+    cum_sum = st.session_state.trades['pnl'].cumsum() #TODO: should sort by end date here   
     with res2:
         st.text(f"Stats for '{trades_file}'")
         st.header(f"Baseline ({len(st.session_state.trades)})")
         st.subheader('Average PnL stats:')
-        st.metric('Mean', st.session_state.trades['pnl'].mean())
-        st.metric('Std',  st.session_state.trades['pnl'].std())
-        st.metric('Max open', utils.max_open(st.session_state.trades))
-        st.metric('Return (%)', f"{cum_sum[-1]/st.session_state.start_eq*100:.2f}")
+        st.markdown(f'**Mean:** {st.session_state.trades["pnl"].mean():.2f}')
+        st.markdown(f'**Std:** {st.session_state.trades["pnl"].std():.2f}')
+        st.markdown(f'**Max open:** {utils.max_open(st.session_state.trades):.2f}')
+        st.markdown(f'**Return (%):** {cum_sum[-1]/st.session_state.start_eq*100:.2f}')
     with res3:
         st.subheader('Cumulative Equity curve')
         with st.spinner('Loading chart'):
@@ -127,15 +127,15 @@ def main():
     with res2:
         st.header(f"Rank {st.session_state.selected_metric} ({len(st.session_state.filtered_trades)})")
         st.subheader('Average PnL stats:')
-        st.metric('Mean', st.session_state.filtered_trades['pnl'].mean())
-        st.metric('Std',  st.session_state.filtered_trades['pnl'].std())
-        st.metric('Max open', utils.max_open(st.session_state.filtered_trades))
+        st.markdown(f'**Mean:** {st.session_state.filtered_trades["pnl"].mean():.2f}')
+        st.markdown(f'**Std:** {st.session_state.filtered_trades["pnl"].std():.2f}')
+        st.markdown(f'**Max open:** {utils.max_open(st.session_state.filtered_trades):.2f}')
         t, p_value = stats.ttest_ind(st.session_state.trades['pnl'], st.session_state.filtered_trades['pnl'])
-        st.metric('t-value', t)
-        st.metric('p-value', p_value)
+        st.markdown(f'**t-value:** {t:.2f}')
+        st.markdown(f'**p-value:** {p_value:.2f}')
         st.subheader('Strategy statistics:')
         sum = cum_sum[-1]
-        st.metric('Return (%)', f"{sum/st.session_state.start_eq*100:.2f}")
+        st.markdown(f'**Return (%):** {sum/st.session_state.start_eq*100:.2f}')
         
     with res3:
         st.subheader('Cumulative Equity curve')
