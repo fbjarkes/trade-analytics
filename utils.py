@@ -293,8 +293,14 @@ def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
     return results
 
 
-def trade_stats(df: pd.DataFrame) -> Tuple[Dict[str, Any], pd.Series]:
+def trade_stats(df: pd.DataFrame, start_eq: float) -> Tuple[Dict[str, Any], pd.Series]:
     mean = df["pnl"].mean()
     std = df["pnl"].std()
     max_trades = max_open(df)
-    return {'Mean': 0, 'Std': 0, 'Max Open': 0, 'Return (%)': 0, 't-value': 0, 'p-value': 0, 'Max Open': 0}, pd.Series()
+    if len(df) > 0:
+        cum_sum = df['pnl'].cumsum() # TODO sort by end date
+        ret = cum_sum[-1]/start_eq*100
+    else:
+        cum_sum = pd.Series()
+        ret = 0    
+    return {'Mean': mean, 'Std': std, 'Max Open': max_trades, 'Return (%)': ret, 't-value': 0, 'p-value': 0}, cum_sum

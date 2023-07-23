@@ -141,7 +141,7 @@ def main():
     res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])    
     #TODO: should sort by end date here   
     #cum_sum = st.session_state.trades['pnl'].cumsum()
-    trade_stats, cum_sum = utils.trade_stats(st.session_state.trades)
+    trade_stats, cum_sum = utils.trade_stats(st.session_state.trades, st.session_state.start_eq)
     with res2:        
         st.header(f"Baseline ({len(st.session_state.trades)})")
         st.subheader('Average PnL stats:')
@@ -160,7 +160,9 @@ def main():
     res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
     #cum_sum = st.session_state.filtered_trades['pnl'].cumsum()  # Sort by end date?
     t, p_value = stats.ttest_ind(st.session_state.trades['pnl'], st.session_state.filtered_trades['pnl'])
-    trade_stats, cum_sum = utils.trade_stats(st.session_state.filtered_trades)
+    trade_stats, cum_sum = utils.trade_stats(st.session_state.filtered_trades, st.session_state.start_eq)
+    trade_stats['t-value'] = t
+    trade_stats['p-value'] = p_value
     with res2:        
         st.header(f"Rank {st.session_state.selected_metric} ({len(st.session_state.filtered_trades)})")
         st.subheader('Average PnL stats:')
