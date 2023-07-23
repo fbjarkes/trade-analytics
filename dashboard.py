@@ -72,7 +72,8 @@ def init_data(trades_path: str, data_path: str):
 
 def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
-    trades_file = 'trades/BB20_1_5_RR_3_3_trades.csv'
+    st.session_state.start_eq = 10000
+    trades_file = '/Users/fbjarkes/git/trading-tools/test_trades.csv'
         
     with st.spinner('Initializing...'):        
         if 'trades' not in st.session_state and 'tickers_dict' not in st.session_state:
@@ -114,6 +115,7 @@ def main():
         st.metric('Mean', st.session_state.trades['pnl'].mean())
         st.metric('Std',  st.session_state.trades['pnl'].std())
         st.metric('Max open', utils.max_open(st.session_state.trades))
+        st.metric('Return (%)', f"{cum_sum[-1]/st.session_state.start_eq*100:.2f}")
     with res3:
         st.subheader('Cumulative Equity curve')
         with st.spinner('Loading chart'):
@@ -132,9 +134,8 @@ def main():
         st.metric('t-value', t)
         st.metric('p-value', p_value)
         st.subheader('Strategy statistics:')
-        eq = cum_sum[-1]
-        start_eq = 10000
-        st.metric('Return (%)', (eq-start_eq)/start_eq*100)
+        sum = cum_sum[-1]
+        st.metric('Return (%)', f"{sum/st.session_state.start_eq*100:.2f}")
         
     with res3:
         st.subheader('Cumulative Equity curve')
