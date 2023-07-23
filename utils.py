@@ -1,5 +1,5 @@
 import multiprocessing
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from finta import TA
 import numpy as np
 import pandas as pd
@@ -71,6 +71,8 @@ def filter_symbols(trades: pd.DataFrame, symbols: List[str]) -> pd.DataFrame:
     return filtered_trades
 
 def filter_start_date(trades: pd.DataFrame, date: str) -> pd.DataFrame:
+    if trades is None or trades.empty:
+        return pd.DataFrame()
     starting_date = pd.to_datetime(date)
     return trades[trades.index >= starting_date]
 
@@ -290,3 +292,9 @@ def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
         results = list(executor.map(apply_rank_metric, dfs))
     return results
 
+
+def trade_stats(df: pd.DataFrame) -> Tuple[Dict[str, Any], pd.Series]:
+    mean = df["pnl"].mean()
+    std = df["pnl"].std()
+    max_trades = max_open(df)
+    return {'Mean': 0, 'Std': 0, 'Max Open': 0, 'Return (%)': 0, 't-value': 0, 'p-value': 0, 'Max Open': 0}, pd.Series()

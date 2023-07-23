@@ -1,3 +1,4 @@
+from datetime import datetime
 from functools import partial
 import numpy as np
 import pandas as pd
@@ -6,6 +7,9 @@ import streamlit as st
 import plotly.graph_objects as go
 
 import utils
+
+NO_TRADES_DF = pd.DataFrame(columns=['symbol', 'entry_date', 'exit_date', 'entry_price', 'exit_price', 'pnl'])
+
 
 
 def plot_ohlc_chart(df):
@@ -75,47 +79,73 @@ def main():
     st.session_state.start_eq = 10000
     trades_file = '/Users/fbjarkes/git/trading-tools/test_trades.csv'
         
-    with st.spinner('Initializing...'):        
-        if 'trades' not in st.session_state and 'tickers_dict' not in st.session_state:
-            #trades, tickers_dict = init_data('bbrev_trades.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
-            trades, tickers_dict = init_data(trades_file, '')
-            st.session_state.trades = trades
-            st.session_state.timeframe = 'day'  # TODO: calculate from trades
-            st.session_state.tickers_dict = tickers_dict
-        
+    # with st.spinner('Initializing...'):        
+    #     if 'trades' not in st.session_state and 'tickers_dict' not in st.session_state:
+    #         #trades, tickers_dict = init_data('bbrev_trades.csv', '/Users/fbjarkes/Bardata/alpaca-v2/15min_bbrev')
+    #         trades, tickers_dict = init_data(trades_file, '')
+    #         st.session_state.trades = trades
+    #         st.session_state.timeframe = 'day'  # TODO: calculate from trades
+    #         st.session_state.tickers_dict = tickers_dict
+    
+    # ==== CSV files upload ====
+    st.sidebar.markdown(f"## Upload files")
+    trades_csv = st.sidebar.file_uploader(f"Trades CSV", type=['csv'])
+    if trades_csv:
+        trades, tickers_dict = init_data(trades_file, '')
+        st.session_state.trades = trades
+        st.session_state.timeframe = 'day'  # TODO: calculate from trades
+        st.session_state.tickers_dict = tickers_dict
+    else:
+        st.session_state.tickers_dict = {}
+        st.session_state.trades = NO_TRADES_DF
+        st.session_state.timeframe = 'day'
+            
+    
     # ==== Filter inputs ====
     col1, col2, col3 = st.columns([0.3, 0.4, 0.3])
     with col2:
-        st.session_state.start_date = st.date_input('Filter Start Date', value=st.session_state.trades.index[0].date())        
-        st.session_state.end_date = st.date_input('Filter End Date', value=st.session_state.trades.index[-1].date())  # NOTE: just use last start date
+        if st.session_state.trades.empty:
+            start_date = datetime(datetime.now().year, 1, 1).date()
+            end_date = datetime.now().date()
+        else:
+            start_date = st.session_state.trades.index[0].date()
+            end_date =  st.session_state.trades.index[-1].date()
+        st.session_state.start_date = st.date_input('Filter Start Date', value=start_date)        
+        st.session_state.end_date = st.date_input('Filter End Date', value=end_date)  # NOTE: just use last start date
         st.session_state.selected_metric = st.selectbox('Select Rank Metric:', utils.SELECTABLE_METRICS)
         st.session_state.selected_rank = st.selectbox('Select Top Ranked:', [1,2,3,4,5,6,7,8,9,10])
         st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
-                
-                
-    # ==== TABLE ====
-    d1, d2, d3 = st.columns([0.1, 0.8, 0.1])
-    with d2:
-        st.text(f"Trades for '{trades_file}'")
-        filter_trades = utils.compose(
+    
+        
+    filter_trades = utils.compose(
         partial(utils.filter_rank, metric=st.session_state.selected_metric, rank=st.session_state.selected_rank), 
         partial(utils.filter_symbols, symbols=st.session_state.symbols), 
         partial(utils.filter_start_date, date=st.session_state.start_date))
-                                
-        st.session_state.filtered_trades = filter_trades(st.session_state.trades)
+    if st.session_state.trades.empty:
+        st.session_state.filtered_trades = NO_TRADES_DF
+    else:    
+        st.session_state.filtered_trades = filter_trades(st.session_state.trades) # TODO: run with click of button?
+                
+    # ==== TABLE ====
+    d1, d2, d3 = st.columns([0.1, 0.8, 0.1])
+    with d2:        
         st.dataframe(st.session_state.filtered_trades.tail(500), use_container_width=True)
                 
     # ==== Baseline ====
-    res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
-    cum_sum = st.session_state.trades['pnl'].cumsum() #TODO: should sort by end date here   
+    res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])    
+    #TODO: should sort by end date here   
+    #cum_sum = st.session_state.trades['pnl'].cumsum()
+    trade_stats, cum_sum = utils.trade_stats(st.session_state.trades)
     with res2:
         st.text(f"Stats for '{trades_file}'")
         st.header(f"Baseline ({len(st.session_state.trades)})")
         st.subheader('Average PnL stats:')
-        st.markdown(f'**Mean:** {st.session_state.trades["pnl"].mean():.2f}')
-        st.markdown(f'**Std:** {st.session_state.trades["pnl"].std():.2f}')
-        st.markdown(f'**Max open:** {utils.max_open(st.session_state.trades):.2f}')
-        st.markdown(f'**Return (%):** {cum_sum[-1]/st.session_state.start_eq*100:.2f}')
+        for key, value in trade_stats.items():
+            st.markdown(f'**{key}:** {value:.2f}')
+        # st.markdown(f'**Mean:** {st.session_state.trades["pnl"].mean():.2f}')
+        # st.markdown(f'**Std:** {st.session_state.trades["pnl"].std():.2f}')
+        # st.markdown(f'**Max open:** {:.2f}')
+        # st.markdown(f'**Return (%):** {cum_sum[-1]/st.session_state.start_eq*100:.2f}')
     with res3:
         st.subheader('Cumulative Equity curve')
         with st.spinner('Loading chart'):
@@ -123,19 +153,22 @@ def main():
     
     # ==== Metric result ====
     res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
-    cum_sum = st.session_state.filtered_trades['pnl'].cumsum()  # Sort by end date?
-    with res2:
+    #cum_sum = st.session_state.filtered_trades['pnl'].cumsum()  # Sort by end date?
+    t, p_value = stats.ttest_ind(st.session_state.trades['pnl'], st.session_state.filtered_trades['pnl'])
+    trade_stats, cum_sum = utils.trade_stats(st.session_state.filtered_trades)
+    with res2:        
         st.header(f"Rank {st.session_state.selected_metric} ({len(st.session_state.filtered_trades)})")
         st.subheader('Average PnL stats:')
-        st.markdown(f'**Mean:** {st.session_state.filtered_trades["pnl"].mean():.2f}')
-        st.markdown(f'**Std:** {st.session_state.filtered_trades["pnl"].std():.2f}')
-        st.markdown(f'**Max open:** {utils.max_open(st.session_state.filtered_trades):.2f}')
-        t, p_value = stats.ttest_ind(st.session_state.trades['pnl'], st.session_state.filtered_trades['pnl'])
-        st.markdown(f'**t-value:** {t:.2f}')
-        st.markdown(f'**p-value:** {p_value:.2f}')
-        st.subheader('Strategy statistics:')
-        sum = cum_sum[-1]
-        st.markdown(f'**Return (%):** {sum/st.session_state.start_eq*100:.2f}')
+        for key, value in trade_stats.items():
+            st.markdown(f'**{key}:** {value:.2f}')
+        # st.markdown(f'**Mean:** {st.session_state.filtered_trades["pnl"].mean():.2f}')
+        # st.markdown(f'**Std:** {st.session_state.filtered_trades["pnl"].std():.2f}')
+        # st.markdown(f'**Max open:** {utils.max_open(st.session_state.filtered_trades):.2f}')
+        
+        # st.markdown(f'**t-value:** {t:.2f}')
+        # st.markdown(f'**p-value:** {p_value:.2f}')
+        # st.subheader('Strategy statistics:')
+        # st.markdown(f'**Return (%):** {cum_sum[-1]/st.session_state.start_eq*100:.2f}')
         
     with res3:
         st.subheader('Cumulative Equity curve')
@@ -144,16 +177,16 @@ def main():
     
 
     # ==== Index compare ====
-    col1, col2, col3 = st.columns([0.3, 0.4, 0.3])
-    with col2:
-        uploaded_file = st.sidebar.file_uploader('Upload OHLC CSV file:')
-        if uploaded_file is not None:
-            df, name = parse_uploaded_csv(uploaded_file)
-            print(f"Filtering {name} with start date {st.session_state.start_date}")
-            df = df.loc[st.session_state.start_date:st.session_state.end_date]
-            df = df[['close']]
-            df.rename(columns={'close': name}, inplace=True)
-            
+    # col1, col2, col3 = st.columns([0.3, 0.4, 0.3]) 
+    # with col2:
+    #     uploaded_file = st.sidebar.file_uploader('Upload OHLC CSV file:')
+    #     if uploaded_file is not None:
+    #         df, name = parse_uploaded_csv(uploaded_file)
+    #         print(f"Filtering {name} with start date {st.session_state.start_date}")
+    #         df = df.loc[st.session_state.start_date:st.session_state.end_date]
+    #         df = df[['close']]
+    #         df.rename(columns={'close': name}, inplace=True)
+            # 
             #TODO: resample pnl series to daily and create 10 bucket sizes of number of trades
             # print IWM df with nbr_trades added as new column
             
