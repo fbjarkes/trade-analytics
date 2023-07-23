@@ -301,7 +301,13 @@ def trade_stats(df: pd.DataFrame, start_eq: float) -> Tuple[Dict[str, Any], pd.S
         pnl = df.sort_values('end_date')['pnl']        
         cum_sum = pnl.cumsum()
         ret = cum_sum[-1]/start_eq*100
+        cum_max = pnl.cummax()
+        dd = pnl - cum_max
+        dd_pct = dd / cum_max * 100
+        max_drawdown = dd_pct.min()
     else:
         cum_sum = pd.Series()
-        ret = 0    
-    return {'Mean': mean, 'Std': std, 'Max Open': max_trades, 'Return (%)': ret, 't-value': 0, 'p-value': 0}, cum_sum
+        ret = 0
+        max_drawdown = 0    
+    return {'Mean': mean, 'Std': std, 'Max Open': max_trades, 'Return (%)': ret, 'Max DD (%)': max_drawdown,
+            'Max Exposure': 0}, cum_sum
