@@ -298,7 +298,8 @@ def trade_stats(df: pd.DataFrame, start_eq: float) -> Tuple[Dict[str, Any], pd.S
     std = df["pnl"].std()
     max_trades = max_open(df)
     if len(df) > 0:
-        cum_sum = df['pnl'].cumsum() # TODO sort by end date
+        pnl = df.sort_values('end_date')['pnl']        
+        cum_sum = pnl.cumsum()
         ret = cum_sum[-1]/start_eq*100
     else:
         cum_sum = pd.Series()
