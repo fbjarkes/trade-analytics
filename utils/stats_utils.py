@@ -28,6 +28,8 @@ def max_open(trades: pd.DataFrame) -> int:
 
 
 def get_trade_stats(df: pd.DataFrame, start_eq: float) -> Tuple[Dict[str, Any], pd.Series]:
+    if df.empty:
+        return {'Mean': 0, 'Std': 0, 'Max Open': 0, 'Return (%)': 0, 'Max DD (%)': 0, 'Max Exposure': 0}, pd.Series()
     mean = df["pnl"].mean()
     std = df["pnl"].std()
     max_trades = max_open(df)

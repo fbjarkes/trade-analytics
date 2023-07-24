@@ -11,7 +11,10 @@ import utils.func_utils as func_utils
 
 NO_TRADES_DF = pd.DataFrame(columns=['symbol', 'entry_date', 'exit_date', 'entry_price', 'exit_price', 'pnl'])
 
-
+PROVIDER_CONFIG = {
+    'tv': '/Users/fbjarkes/Bardata/tradingview',
+    'alpaca': '/Users/fbjarkes/Bardata/alpaca'
+}
 
 @st.cache_data 
 def load_trades(csv_path: str):
@@ -68,23 +71,25 @@ def init_data(trades_path: str, data_path: str, provider='alpaca'):
 
 def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
-    st.session_state.start_eq = 10000
-    #trades_file = '/Users/fbjarkes/git/trading-tools/test_trades.csv'
-    tickers_data_path = '/Users/fbjarkes/Bardata/tradingview/day'
+    st.session_state.start_eq = 10000    
+    st.sidebar.markdown(f"## Bardata options")
+    provider = st.sidebar.selectbox('Select data provider:', ['alpaca', 'tv'])
+    tf = st.sidebar.selectbox('Select timeframe', ['15min', '30min', 'day'])    
+        
     # ==== CSV files upload ====
-    st.sidebar.markdown(f"## Upload files")
+    st.sidebar.markdown(f"## Upload trades files")
     trades_csv_data = st.sidebar.file_uploader(f"Trades CSV", type=['csv'])
     if trades_csv_data:
-        trades, tickers_dict = init_data(trades_csv_data, tickers_data_path, provider='tv')
+        trades, tickers_dict = init_data(trades_csv_data, f"{PROVIDER_CONFIG[provider]}/{tf}", provider=provider)
         st.session_state.trades = trades
-        st.session_state.timeframe = 'day'  # TODO: calculate from trades
+        st.session_state.timeframe = tf
         st.session_state.tickers_dict = tickers_dict
         st.sidebar.text(f"File '{trades_csv_data.name}'")
     else:
         st.session_state.tickers_dict = {}
         st.session_state.trades = NO_TRADES_DF
         st.session_state.filtered_trades = NO_TRADES_DF
-        st.session_state.timeframe = 'day'
+        st.session_state.timeframe = tf
         st.sidebar.text('No file selected')
             
     
@@ -140,7 +145,10 @@ def main():
     
     # ==== Metric result ====
     res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
-    t, p_value = stats.ttest_ind(st.session_state.trades['pnl'], st.session_state.filtered_trades['pnl'])
+    if st.session_state.filtered_trades.empty:
+        t, p_value = 0, 0    
+    else:
+        t, p_value = stats.ttest_ind(st.session_state.trades['pnl'], st.session_state.filtered_trades['pnl'])
     trade_stats, cum_sum = stats_utils.get_trade_stats(st.session_state.filtered_trades, st.session_state.start_eq)
     trade_stats['t-value'] = t
     trade_stats['p-value'] = p_value
