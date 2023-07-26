@@ -107,6 +107,19 @@ def main():
         st.session_state.selected_metric = st.selectbox('Select Rank Metric:', stats_utils.SELECTABLE_METRICS)
         st.session_state.selected_rank = st.selectbox('Select Top Ranked:', [1,2,3,4,5,6,7,8,9,10])
         st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
+        st.write(f"Filter by Index (normalized)")
+        # TODO: select predefined indexes here? (and load and prep. when selected)
+        st.session_state.selected_index_metric_normalized = st.selectbox('Select Index Metric:', stats_utils.INDEX_METRICS_NORMALIZED)
+        st.write(f"Filter by Index")
+        with st.expander('Index Metric'):
+            # TODO: select predefined indexes here? (and load and prep. when selected)
+            st.session_state.selected_index_metric = st.selectbox('Select Metric:', stats_utils.INDEX_METRICS)
+            st.session_state.selected_index_value = st.number_input('Index Value:', value=0.0)        
+        st.divider()
+        st.write(f"Equity Curve Filter")
+        st.session_state.selected_index_metric_normalized = st.selectbox('Select filter:', stats_utils.EC_FILTER_METRICS)
+        
+        st.divider()
         st.write(f"View trades by row numbers ({len(st.session_state.filtered_trades)} rows):")
         st.session_state.table_row_first = st.text_input('First row', value=len(st.session_state.filtered_trades)-500)
         st.session_state.table_row_last = st.text_input('Last row', value=len(st.session_state.filtered_trades))
@@ -118,7 +131,8 @@ def main():
     if st.session_state.trades.empty:
         st.session_state.filtered_trades = NO_TRADES_DF
     else:    
-        st.session_state.filtered_trades = filter_trades(st.session_state.trades) # TODO: run with click of button?
+        # TODO: run with click of button?
+        st.session_state.filtered_trades = filter_trades(st.session_state.trades) 
                 
     # ==== TABLE ====
     d1, d2, d3 = st.columns([0.1, 0.8, 0.1])

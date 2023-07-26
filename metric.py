@@ -6,7 +6,7 @@ import numpy as np
 import scipy.stats as stats
 from finta import TA
 
-from utils import apply_rank_metric
+from utils.stats_utils import apply_rank_metric
 
 @dataclass
 class TradeData:
