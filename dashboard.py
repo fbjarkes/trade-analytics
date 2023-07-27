@@ -13,18 +13,12 @@ NO_TRADES_DF = pd.DataFrame(columns=['symbol', 'entry_date', 'exit_date', 'entry
 
 PROVIDER_CONFIG = {
     'tv': '/Users/fbjarkes/Bardata/tradingview',
-    'alpaca': '/Users/fbjarkes/Bardata/alpaca'
+    'alpaca': '/Users/fbjarkes/Bardata/alpaca-v2'
 }
 
 @st.cache_data 
-def load_trades(csv_path: str):
-    print(f"Reading trades csv: {csv_path}")
-    trades = data_utils.read_trades_csv(csv_path)
-    return trades
-
-@st.cache_data 
 def init_data(trades_path: str, data_path: str, provider='alpaca'):
-    trades = load_trades(trades_path)      
+          
     tickers = trades['symbol'].unique()
     
     ### DEBUG
@@ -34,7 +28,6 @@ def init_data(trades_path: str, data_path: str, provider='alpaca'):
     # filter trades by tickers
     #trades = trades[trades['symbol'].isin(tickers)]
     ### 
-    
     if data_path:
         try: 
             print(f"Loading data from '{data_path}' for {len(tickers)} tickers (provider={provider})")
@@ -44,8 +37,14 @@ def init_data(trades_path: str, data_path: str, provider='alpaca'):
                 tickers_data_df, runtime = data_utils.load_tv_csv_to_df(data_path, tickers)
             else:
                 raise Exception(f"Unknown provider: {provider}")
-            print(f"load_json_to_df_async: {runtime:.2f} seconds")        
-            
+            print(f"tickers data loaded in {runtime:.2f} seconds")        
+            print(tickers_data_df)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()            
+            print(f"Error loading data: {e}")            
+            return trades, {}
+        try:
             print(f"Applying metrics to tickers data ({len(tickers_data_df)})")
             tickers_data_df, runtime = func_utils.p_map(tickers_data_df, partial(stats_utils.apply_rank_metric, metrics=stats_utils.RANK_METRICS))
             print()
@@ -59,14 +58,10 @@ def init_data(trades_path: str, data_path: str, provider='alpaca'):
             print(f"Applying metrics to trades data ({len(trades)})")
             trades = stats_utils.apply_rank(stats_utils.RANK_METRICS, trades, tickers_dict)
         except Exception as e:
-            # print stack trace:
             import traceback
             traceback.print_exc()            
-            print(f"Error loading data: {e}")            
-            tickers_dict = {}
-    else:
-        tickers_dict = {}
-    
+            print(f"Error applying metrics: {e}")            
+            return trades, {}
     return trades, tickers_dict
 
 def main():
@@ -74,22 +69,23 @@ def main():
     st.session_state.start_eq = 10000    
     st.sidebar.markdown(f"## Bardata options")
     provider = st.sidebar.selectbox('Select data provider:', ['alpaca', 'tv'])
-    tf = st.sidebar.selectbox('Select timeframe', ['15min', '30min', 'day'])    
-        
+    st.session_state.timeframe = st.sidebar.selectbox('Select timeframe', ['15min', '30min', 'day'])    
+    # path = st.sidebar.text_input('Data path', value=PROVIDER_CONFIG[provider])
+    # if st.sidebar.button('Load data'):
+    #     tickers_dict = load_tickers_data(trades, f"{PROVIDER_CONFIG[provider]}/{tf}", provider=provider)
     # ==== CSV files upload ====
     st.sidebar.markdown(f"## Upload trades files")
     trades_csv_data = st.sidebar.file_uploader(f"Trades CSV", type=['csv'])
     if trades_csv_data:
-        trades, tickers_dict = init_data(trades_csv_data, f"{PROVIDER_CONFIG[provider]}/{tf}", provider=provider)
-        st.session_state.trades = trades
-        st.session_state.timeframe = tf
-        st.session_state.tickers_dict = tickers_dict
+        trades = data_utils.load_trades(trades_csv_data)
+        tickers_dict = data_utils.load_tickers_data(trades, f"{PROVIDER_CONFIG[provider]}/{st.session_state.timeframe}", provider=provider)
+        metric_trades = data_utils.apply_metrics(trades, tickers_dict)
+        #trades, tickers_dict = init_data(trades_csv_data, f"{PROVIDER_CONFIG[provider]}/{tf}", provider=provider)
+        st.session_state.trades = metric_trades
         st.sidebar.text(f"File '{trades_csv_data.name}'")
     else:
-        st.session_state.tickers_dict = {}
         st.session_state.trades = NO_TRADES_DF
         st.session_state.filtered_trades = NO_TRADES_DF
-        st.session_state.timeframe = tf
         st.sidebar.text('No file selected')
             
     

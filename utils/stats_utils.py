@@ -85,7 +85,7 @@ def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str,
     def apply_metrics(row):
         ticker_df = tickers_dict[row['symbol']]
         start_date = row.name
-        
+        # TODO: handle missing symbol in tickers_dict etc.
         for metric in metrics:
             row[metric] = ticker_df.loc[start_date][metric]
             #row.loc[metric] = ticker_df.loc[start_date][metric]

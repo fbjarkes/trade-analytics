@@ -1,6 +1,7 @@
+from functools import partial
 import json
-from utils.func_utils import timer
-
+from utils import stats_utils
+from utils.func_utils import timer, p_map
 
 import pandas as pd
 
@@ -10,6 +11,8 @@ import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
 
+#TODO: should not have anything with Streamlit here
+import streamlit as st
 
 # def json_to_df(symbol: str, path: str) -> pd.DataFrame:  
 #     print(f"Reading json file: {path}")  
@@ -36,7 +39,7 @@ def parse_uploaded_csv(file):
 
 
 def process_json_data(data: dict, symbol: str) -> pd.DataFrame:
-    if data:
+    if data:        
         df = pd.DataFrame(data, columns=['DateTime', 'Open', 'High', 'Low', 'Close', 'Volume'])
         df.set_index('DateTime', inplace=True)
         # TODO: add freq?
@@ -62,14 +65,14 @@ def process_csv_data(path: str, symbol) -> pd.DataFrame:
 
 def load_json_data(symbol: str, path: str) -> Optional[Dict]:
     with open(path) as f:
-        json_data = json.load(f)
+        json_data = json.load(f)       
         return json_data.get(symbol)
 
 #TODO: does this actually work
 def load_json_to_df_threads(symbols: list[str], paths: list[str]) -> list[Optional[pd.DataFrame]]:
     async def process_file(symbol, path):
         loop = asyncio.get_running_loop()
-        data = await loop.run_in_executor(None, load_json_data, symbol, path)
+        data = await loop.run_in_executor(None, load_json_data, symbol, path)        
         return process_json_data(data, symbol)
 
     num_cpus = multiprocessing.cpu_count()
@@ -172,10 +175,12 @@ def parse_json_to_dataframe(symbol: str, path: str) -> pd.DataFrame:
     return df
 
 
-def read_trades_csv(path: str) -> pd.DataFrame:
+@st.cache_data 
+def load_trades(csv_path: str) -> pd.DataFrame:
+    print(f"Reading trades csv: {csv_path}")
     # Note: datetimes are in America/New_York timezone (not tz aware)
     # Columns: ts, symbol, start_date, end_date, pnl, value
-    trades_df = pd.read_csv(path)    
+    trades_df = pd.read_csv(csv_path)    
     trades_df['time'] = pd.to_datetime(trades_df['ts'], unit='s')
     trades_df['start_date'] = pd.to_datetime(trades_df['start_date'])
     trades_df['end_date'] = pd.to_datetime(trades_df['end_date'])
@@ -183,5 +188,56 @@ def read_trades_csv(path: str) -> pd.DataFrame:
     
     # sort on start_date
     trades_df.sort_index(inplace=True)
-    print(f"Read {len(trades_df)} trades from '{path}'")
+    print(f"Read {len(trades_df)} trades from '{csv_path}'")
     return trades_df
+
+
+def load_tickers_data(trades: pd.DataFrame, data_path: str, provider: str) -> List[pd.DataFrame]:
+    tickers = trades['symbol'].unique()
+      
+    ### DEBUG
+    # 100 random tickers
+    #tickers = np.random.choice(tickers, 100, replace=False)
+    #print(f"Randomly selected {len(tickers)} tickers:", tickers)
+    # filter trades by tickers
+    #trades = trades[trades['symbol'].isin(tickers)]
+    ### 
+    try: 
+        print(f"Loading data from '{data_path}' for {len(tickers)} tickers (provider={provider})")
+        if provider == 'alpaca':            
+            tickers_data, runtime = load_json_to_df_async(data_path, tickers)      
+        elif provider == 'tv':
+            tickers_data, runtime = load_tv_csv_to_df(data_path, tickers)
+        else:
+            raise Exception(f"Unknown provider: {provider}")
+        print(f"tickers data loaded in {runtime:.2f} seconds")
+        
+        return tickers_data
+    except Exception as e:
+        import traceback
+        traceback.print_exc()            
+        print(f"Error loading data: {e}")            
+        return []
+   
+   
+def apply_metrics(trades: pd.DataFrame, tickers_data: List[pd.DataFrame]) -> List[pd.DataFrame]:
+    try:
+        # Add TA etc. to all tickers data available
+        print(f"Applying metrics to tickers data ({len(tickers_data)} dataframes)")
+        tickers_data, runtime = p_map(tickers_data, partial(stats_utils.apply_rank_metric, metrics=stats_utils.RANK_METRICS))
+        print()
+        print(f"p_map: {runtime:.2f} seconds")
+        sum = 0   
+        for df in tickers_data:
+            sum += df.memory_usage().sum()
+        print(f"Total memory usage: {sum/1000/1000:.1f} MB for {len(tickers_data)} tickers") 
+        
+        tickers_dict = {df.name: df for df in tickers_data} # Need symbol mapping for rank function
+        print(f"Applying metrics to trades data ({len(trades)})")
+        trades = stats_utils.apply_rank(stats_utils.RANK_METRICS, trades, tickers_dict)
+        return trades
+    except Exception as e:
+        import traceback
+        traceback.print_exc()            
+        print(f"Error applying metrics: {e}")            
+        return trades
