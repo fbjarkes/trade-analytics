@@ -16,54 +16,6 @@ PROVIDER_CONFIG = {
     'alpaca': '/Users/fbjarkes/Bardata/alpaca-v2'
 }
 
-@st.cache_data 
-def init_data(trades_path: str, data_path: str, provider='alpaca'):
-          
-    tickers = trades['symbol'].unique()
-    
-    ### DEBUG
-    # 100 random tickers
-    #tickers = np.random.choice(tickers, 100, replace=False)
-    #print(f"Randomly selected {len(tickers)} tickers:", tickers)
-    # filter trades by tickers
-    #trades = trades[trades['symbol'].isin(tickers)]
-    ### 
-    if data_path:
-        try: 
-            print(f"Loading data from '{data_path}' for {len(tickers)} tickers (provider={provider})")
-            if provider == 'alpaca':            
-                tickers_data_df, runtime = data_utils.load_json_to_df_async(data_path, tickers)      
-            elif provider == 'tv':
-                tickers_data_df, runtime = data_utils.load_tv_csv_to_df(data_path, tickers)
-            else:
-                raise Exception(f"Unknown provider: {provider}")
-            print(f"tickers data loaded in {runtime:.2f} seconds")        
-            print(tickers_data_df)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()            
-            print(f"Error loading data: {e}")            
-            return trades, {}
-        try:
-            print(f"Applying metrics to tickers data ({len(tickers_data_df)})")
-            tickers_data_df, runtime = func_utils.p_map(tickers_data_df, partial(stats_utils.apply_rank_metric, metrics=stats_utils.RANK_METRICS))
-            print()
-            print(f"p_map: {runtime:.2f} seconds")
-            sum = 0   
-            for df in tickers_data_df:
-                sum += df.memory_usage().sum()
-            print(f"Total memory usage: {sum/1000/1000:.1f} MB for {len(tickers_data_df)} tickers") 
-            tickers_dict = {df.name: df for df in tickers_data_df} 
-        
-            print(f"Applying metrics to trades data ({len(trades)})")
-            trades = stats_utils.apply_rank(stats_utils.RANK_METRICS, trades, tickers_dict)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()            
-            print(f"Error applying metrics: {e}")            
-            return trades, {}
-    return trades, tickers_dict
-
 def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
     st.session_state.start_eq = 10000    
@@ -113,7 +65,7 @@ def main():
             st.session_state.selected_index_value = st.number_input('Index Value:', value=0.0)        
         st.divider()
         st.write(f"Equity Curve Filter")
-        st.session_state.selected_index_metric_normalized = st.selectbox('Select filter:', stats_utils.EC_FILTER_METRICS)
+        st.session_state.selected_ec_filter = st.selectbox('Select filter:', stats_utils.EC_FILTER_METRICS)
         
         st.divider()
         st.write(f"View trades by row numbers ({len(st.session_state.filtered_trades)} rows):")
@@ -124,11 +76,15 @@ def main():
         partial(stats_utils.filter_rank, metric=st.session_state.selected_metric, rank=st.session_state.selected_rank), 
         partial(stats_utils.filter_symbols, symbols=st.session_state.symbols), 
         partial(stats_utils.filter_start_date, date=st.session_state.start_date))
+    
     if st.session_state.trades.empty:
         st.session_state.filtered_trades = NO_TRADES_DF
     else:    
         # TODO: run with click of button?
-        st.session_state.filtered_trades = filter_trades(st.session_state.trades) 
+        st.session_state.filtered_trades = filter_trades(st.session_state.trades)
+        if st.session_state.selected_ec_filter != 'NONE':
+            # TODO: add to compose?
+            st.session_state.filtered_trades = stats_utils.filter_equity_curve(st.session_state.filtered_trades, st.session_state.selected_ec_filter)
                 
     # ==== TABLE ====
     d1, d2, d3 = st.columns([0.1, 0.8, 0.1])

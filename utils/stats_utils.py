@@ -17,7 +17,7 @@ RANK_METRICS = [
     #'RSI20',
 ]
 SELECTABLE_METRICS = ['ALL', 'RANDOM'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]
-EC_FILTER_METRICS = ['NONE', 'ABOVE_MA_5', 'ABOVE_MA_10', 'ABOVE_MA_20']
+EC_FILTER_METRICS = ['NONE', 'ABOVE_MA_5', 'ABOVE_MA_10', 'ABOVE_MA_20', 'ABOVE_MA_50', 'ABOVE_MA_100']
 INDEX_METRICS_NORMALIZED = ['EMA_10_20_ABOVE', 'EMA_10_20_BELOW', '10_BELOW', '10_ABOVE']
 INDEX_METRICS = ['EMA_10_ABOVE_20', 'EMA_10_BELOW_20', 'EMA_5_CLOSE_ABOVE', 'EMA_10_CLOSE_ABOVE', 'EMA_20_CLOSE_ABOVE', 'EMA_50_CLOSE_ABOVE', 'ABOVE_VALUE', 'BELOW_VALUE']
 
@@ -146,4 +146,26 @@ def filter_dates(df: pd.DataFrame, start: str, end: str) -> pd.DataFrame:
         df = df.loc[start:end]
     return df
 
-
+def filter_equity_curve(df: pd.DataFrame, ec_metric: str) -> pd.DataFrame:
+    print("Filtering equity curve ", ec_metric)    
+    if ec_metric == 'ABOVE_MA_5':
+        period = 5
+    elif ec_metric == 'ABOVE_MA_10':
+        period = 10
+    elif ec_metric == 'ABOVE_MA_20':
+        period = 20
+    elif ec_metric == 'ABOVE_MA_50':
+        period = 50
+    elif ec_metric == 'ABOVE_MA_100':
+        period = 100
+    else:
+        return df
+    # TODO: only valid for one symbol
+    df['EC'] = df['pnl'].cumsum() # Assuming sorted by start_date
+    df['EC_AVG'] = df['EC'].rolling(period).mean()
+    df['EC_ABOVE_AVG'] = df['EC'] >= df['EC_AVG']
+    df['EC_ABOVE_AVG_SHIFT'] = df['EC_ABOVE_AVG'].shift(1)
+    # filter 'EC_ABOVE_AVG_SHIFT'
+    df = df[df['EC_ABOVE_AVG_SHIFT'] == True]
+    
+    return df
