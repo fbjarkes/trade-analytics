@@ -161,7 +161,11 @@ def filter_equity_curve(df: pd.DataFrame, ec_metric: str) -> pd.DataFrame:
         period = 100
     else:
         return df
-    # TODO: only valid for one symbol
+
+    if len(df['symbol'].unique()) > 1:
+        # Show error message
+        st.error(f"Equity curve filter '{ec_metric}' only valid for one symbol")
+        return df
     df['EC'] = df['pnl'].cumsum() # Assuming sorted by start_date
     df['EC_AVG'] = df['EC'].rolling(period).mean()
     df['EC_ABOVE_AVG'] = df['EC'] >= df['EC_AVG']
