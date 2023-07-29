@@ -32,9 +32,9 @@ def main():
     if trades_csv_data:
         trades = data_utils.load_trades(trades_csv_data)
         tickers_dict = data_utils.load_tickers_data(trades, f"{PROVIDER_CONFIG[provider]}/{st.session_state.timeframe}", provider=provider)
-        metric_trades = data_utils.apply_metrics(trades, tickers_dict)
+        ranked_trades = data_utils.add_rank_metrics_to_trades(trades, tickers_dict, st.session_state.timeframe)
         #trades, tickers_dict = init_data(trades_csv_data, f"{PROVIDER_CONFIG[provider]}/{tf}", provider=provider)
-        st.session_state.trades = metric_trades
+        st.session_state.trades = ranked_trades
         st.sidebar.text(f"File '{trades_csv_data.name}'")
     else:
         st.session_state.trades = NO_TRADES_DF

@@ -211,7 +211,7 @@ def load_trades(csv_path: str) -> pd.DataFrame:
     print(f"Read {len(trades_df)} trades from '{csv_path}'")
     return trades_df
 
-
+@st.cache_data
 def load_tickers_data(trades: pd.DataFrame, data_path: str, provider: str) -> List[pd.DataFrame]:
     tickers = trades['symbol'].unique()
       
@@ -223,7 +223,7 @@ def load_tickers_data(trades: pd.DataFrame, data_path: str, provider: str) -> Li
     #trades = trades[trades['symbol'].isin(tickers)]
     ### 
     try: 
-        print(f"Loading data from '{data_path}' for {len(tickers)} tickers (provider={provider})")
+        print(f"Loading tickers data from '{data_path}' for {len(tickers)} tickers (provider={provider})")
         if provider == 'alpaca':            
             tickers_data, runtime = load_json_to_df_async(data_path, tickers)      
         elif provider == 'tv':
@@ -232,7 +232,7 @@ def load_tickers_data(trades: pd.DataFrame, data_path: str, provider: str) -> Li
             tickers_data, runtime = load_ib_csv_to_df(data_path, tickers)
         else:
             raise Exception(f"Unknown provider: {provider}")
-        print(f"tickers data loaded in {runtime:.2f} seconds")
+        print(f"Tickers data loaded in {runtime:.2f} seconds")
         
         return tickers_data
     except Exception as e:
@@ -241,16 +241,16 @@ def load_tickers_data(trades: pd.DataFrame, data_path: str, provider: str) -> Li
         print(f"Error loading data: {e}")            
         return []
    
-   
-def apply_metrics(trades: pd.DataFrame, tickers_data: List[pd.DataFrame]) -> List[pd.DataFrame]:
+
+@st.cache_data 
+def add_rank_metrics_to_trades(trades: pd.DataFrame, tickers_data: List[pd.DataFrame], tf: str) -> List[pd.DataFrame]:
     if len(tickers_data) == 0:
         print("No tickers data loaded")
         return trades    
     try:
         # Add TA etc. to all tickers data available
-        print(f"Applying metrics to tickers data ({len(tickers_data)} dataframes)")
+        print(f"Calculating rank metrics ({stats_utils.RANK_METRICS}) for tickers data (timeframe {tf} and {len(tickers_data)} dataframes)")
         tickers_data, runtime = p_map(tickers_data, partial(stats_utils.apply_rank_metric, metrics=stats_utils.RANK_METRICS))
-        print()
         print(f"p_map: {runtime:.2f} seconds")
         sum = 0   
         for df in tickers_data:
@@ -258,11 +258,11 @@ def apply_metrics(trades: pd.DataFrame, tickers_data: List[pd.DataFrame]) -> Lis
         print(f"Total memory usage: {sum/1000/1000:.1f} MB for {len(tickers_data)} tickers") 
         
         tickers_dict = {df.name: df for df in tickers_data} # Need symbol mapping for rank function
-        print(f"Applying metrics to trades data ({len(trades)})")
+        print(f"Applying rank metrics to trades data ({len(trades)})")
         trades = stats_utils.apply_rank(stats_utils.RANK_METRICS, trades, tickers_dict)
         return trades
     except Exception as e:
         import traceback
         traceback.print_exc()            
-        print(f"Error applying metrics: {e}")            
+        print(f"Error applying rank metrics: {e}")            
         return trades
