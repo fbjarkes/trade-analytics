@@ -13,14 +13,15 @@ NO_TRADES_DF = pd.DataFrame(columns=['symbol', 'entry_date', 'exit_date', 'entry
 
 PROVIDER_CONFIG = {
     'tv': '/Users/fbjarkes/Bardata/tradingview',
-    'alpaca': '/Users/fbjarkes/Bardata/alpaca-v2'
+    'alpaca': '/Users/fbjarkes/Bardata/alpaca-v2',
+    'ib': '/Users/fbjarkes/Bardata/ibfile'
 }
 
 def main():
     st.set_page_config(layout="wide", page_title='CSV Trade Analytics')   
     st.session_state.start_eq = 10000    
     st.sidebar.markdown(f"## Bardata options")
-    provider = st.sidebar.selectbox('Select data provider:', ['alpaca', 'tv'])
+    provider = st.sidebar.selectbox('Select data provider:', ['alpaca', 'tv', 'ib'])
     st.session_state.timeframe = st.sidebar.selectbox('Select timeframe', ['15min', '30min', 'day'])    
     # path = st.sidebar.text_input('Data path', value=PROVIDER_CONFIG[provider])
     # if st.sidebar.button('Load data'):

@@ -1,5 +1,7 @@
 from functools import partial
 import json
+
+import numpy as np
 from utils import stats_utils
 from utils.func_utils import timer, p_map
 
@@ -115,6 +117,24 @@ def load_tv_csv_to_df(root_path: str, symbols: list[str]) -> List[Optional[pd.Da
         dfs.append(df)
     return dfs
 
+@timer
+def load_ib_csv_to_df(root_path: str, symbols: list[str]) -> List[Optional[pd.DataFrame]]:
+    def _process(path, symbol):
+        try:
+            df = pd.read_csv(path, dtype={'Open': np.float32, 'High': np.float32, 'Low': np.float32, 'Close': np.float32, 'Volume': np.float32}, 
+                            parse_dates=True, index_col='Date')
+            #TODO need to convert to TZ America/New_York ?
+            df = df.sort_index()            
+            df.name = symbol        
+            return df
+        except Exception as e:
+            print(f"Error parsing csv '{path}': {e}")
+    dfs = []
+    for symbol in symbols:
+        df = _process(f"{root_path}/{symbol}.csv", symbol)
+        dfs.append(df)
+    return dfs
+
 def json_to_df(symbol: str, path: str) -> Optional[pd.DataFrame]:
     data = load_json_data(symbol, path)
     if data is not None:
@@ -208,6 +228,8 @@ def load_tickers_data(trades: pd.DataFrame, data_path: str, provider: str) -> Li
             tickers_data, runtime = load_json_to_df_async(data_path, tickers)      
         elif provider == 'tv':
             tickers_data, runtime = load_tv_csv_to_df(data_path, tickers)
+        elif provider == 'ib':
+            tickers_data, runtime = load_ib_csv_to_df(data_path, tickers)
         else:
             raise Exception(f"Unknown provider: {provider}")
         print(f"tickers data loaded in {runtime:.2f} seconds")
@@ -221,6 +243,9 @@ def load_tickers_data(trades: pd.DataFrame, data_path: str, provider: str) -> Li
    
    
 def apply_metrics(trades: pd.DataFrame, tickers_data: List[pd.DataFrame]) -> List[pd.DataFrame]:
+    if len(tickers_data) == 0:
+        print("No tickers data loaded")
+        return trades    
     try:
         # Add TA etc. to all tickers data available
         print(f"Applying metrics to tickers data ({len(tickers_data)} dataframes)")
