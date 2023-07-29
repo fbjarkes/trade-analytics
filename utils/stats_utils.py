@@ -18,8 +18,10 @@ RANK_METRICS = [
 ]
 SELECTABLE_METRICS = ['ALL', 'RANDOM'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]
 EC_FILTER_METRICS = ['NONE', 'ABOVE_MA_5', 'ABOVE_MA_10', 'ABOVE_MA_20', 'ABOVE_MA_50', 'ABOVE_MA_100']
+INDEX_NORMALIZED = ['NONE', 'MMTW_20', 'MMFI_50', 'MMOH_100', 'MMOF_150', 'MMTH_200']
 INDEX_METRICS_NORMALIZED = ['EMA_10_20_ABOVE', 'EMA_10_20_BELOW', '10_BELOW', '10_ABOVE']
-INDEX_METRICS = ['EMA_10_ABOVE_20', 'EMA_10_BELOW_20', 'EMA_5_CLOSE_ABOVE', 'EMA_10_CLOSE_ABOVE', 'EMA_20_CLOSE_ABOVE', 'EMA_50_CLOSE_ABOVE', 'ABOVE_VALUE', 'BELOW_VALUE']
+INDEX = ['NONE', 'OMXS30', 'IWM']
+INDEX_METRICS = ['EMA_10_20_ABOVE', 'EMA_10_20_BELOW', 'EMA_5_CLOSE_ABOVE', 'EMA_10_CLOSE_ABOVE', 'EMA_20_CLOSE_ABOVE', 'EMA_50_CLOSE_ABOVE', 'ABOVE_VALUE', 'BELOW_VALUE']
 
 
 def max_open(trades: pd.DataFrame) -> int:
@@ -66,6 +68,12 @@ def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
             df[metric] = TA.RSI(df, 20)
     return df
 
+def apply_index_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
+    df['EMA10'] = TA.EMA(df, 10)
+    df['EMA20'] = TA.EMA(df, 20)
+    df['EMA5'] = TA.EMA(df, 5)
+    df['EMA50'] = TA.EMA(df, 50)
+    
 
 def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
     with ThreadPoolExecutor() as executor:
@@ -174,3 +182,7 @@ def filter_equity_curve(df: pd.DataFrame, ec_metric: str) -> pd.DataFrame:
     df = df[df['EC_ABOVE_AVG_SHIFT'] == True]
     
     return df
+
+def filter_by_index(index: pd.DataFrame, index_metric: str, trades: pd.DataFrame) -> pd.DataFrame:
+    # TODO: Extract a list of DateTimeIndex dates where index metric has been filtered out
+    return trades

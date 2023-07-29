@@ -266,3 +266,12 @@ def add_rank_metrics_to_trades(trades: pd.DataFrame, tickers_data: List[pd.DataF
         traceback.print_exc()            
         print(f"Error applying rank metrics: {e}")            
         return trades
+    
+    
+def load_index(index:str) -> pd.DataFrame:
+    # Assuming TV data
+    print(f"Loading index {index}")
+    dfs, time =  load_tv_csv_to_df('data', [index])
+    df = dfs[0]
+    print(f"Loaded {len(df)} rows for index {index}")
+    return df

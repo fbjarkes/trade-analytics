@@ -56,12 +56,13 @@ def main():
         st.session_state.selected_metric = st.selectbox('Select Rank Metric:', stats_utils.SELECTABLE_METRICS)
         st.session_state.selected_rank = st.selectbox('Select Top Ranked:', [1,2,3,4,5,6,7,8,9,10])
         st.session_state.symbols = [sym.upper() for sym in st.text_input('Symbols (comma separated):').split(',')]
-        st.write(f"Filter by Index (normalized)")
-        # TODO: select predefined indexes here? (and load and prep. when selected)
-        st.session_state.selected_index_metric_normalized = st.selectbox('Select Index Metric:', stats_utils.INDEX_METRICS_NORMALIZED)
+        
+        st.write(f"Filter by Index (normalized)")        
+        st.session_state.selected_index_normalized = st.selectbox('Select Index :', stats_utils.INDEX_NORMALIZED)
+        st.session_state.selected_index_metric_normalized = st.selectbox('Select Metric:', stats_utils.INDEX_METRICS_NORMALIZED)        
         st.write(f"Filter by Index")
         with st.expander('Index Metric'):
-            # TODO: select predefined indexes here? (and load and prep. when selected)
+            st.session_state.selected_index = st.selectbox('Select Index :', stats_utils.INDEX)
             st.session_state.selected_index_metric = st.selectbox('Select Metric:', stats_utils.INDEX_METRICS)
             st.session_state.selected_index_value = st.number_input('Index Value:', value=0.0)        
         st.divider()
@@ -82,11 +83,19 @@ def main():
         st.session_state.filtered_trades = NO_TRADES_DF
     else:    
         # TODO: run with click of button?
-        st.session_state.filtered_trades = filter_trades(st.session_state.trades)
-        if st.session_state.selected_ec_filter != 'NONE':
-            # TODO: add to compose?
+        st.session_state.filtered_trades = filter_trades(st.session_state.trades)        
+        # TODO: add to compose?
+        if st.session_state.selected_ec_filter != 'NONE':            
             st.session_state.filtered_trades = stats_utils.filter_equity_curve(st.session_state.filtered_trades, st.session_state.selected_ec_filter)
-                
+    
+    # Can add index regardless of trades added
+    if st.session_state.selected_index_normalized != 'NONE':
+        st.session_state.index_normalized = stats_utils.apply_index_metric(data_utils.load_index(st.session_state.selected_index_normalized), stats_utils.INDEX_METRICS_NORMALIZED)
+        #st.session_state.filtered_trades = stats_utils.filter_by_index(st.session_state.index_normalized, st.session_state.selected_index_normalized, st.session_state.filtered_trades)
+    elif st.session_state.selected_index != 'NONE':
+        st.session_state.index = stats_utils.apply_index_metric(data_utils.load_index(st.session_state.selected_index), stats_utils.INDEX_METRICS)
+        st.session_state.filtered_trades = stats_utils.filter_by_index(st.session_state.index_normalized, st.session_state.selected_index_normalized, st.session_state.filtered_trades)
+
     # ==== TABLE ====
     d1, d2, d3 = st.columns([0.1, 0.8, 0.1])
     with d2:
@@ -128,37 +137,22 @@ def main():
         st.subheader('Cumulative Equity curve')
         with st.spinner('Loading chart'):
             st.line_chart(cum_sum)
-    
-
-    # ==== Index compare ====
-    # col1, col2, col3 = st.columns([0.3, 0.4, 0.3]) 
-    # with col2:
-    #     uploaded_file = st.sidebar.file_uploader('Upload OHLC CSV file:')
-    #     if uploaded_file is not None:
-    #         df, name = parse_uploaded_csv(uploaded_file)
-    #         print(f"Filtering {name} with start date {st.session_state.start_date}")
-    #         df = df.loc[st.session_state.start_date:st.session_state.end_date]
-    #         df = df[['close']]
-    #         df.rename(columns={'close': name}, inplace=True)
-            # 
-            #TODO: resample pnl series to daily and create 10 bucket sizes of number of trades
-            # print IWM df with nbr_trades added as new column
             
-            # TODO: resample to daily and plot with different axis
-            #cum_sum = st.session_state.filtered_trades['pnl'].cumsum().resample('D').sum()                        
-            #df[f"Rank {st.session_state.selected_metric} EQ"] = cum_sum                
-            #st.line_chart(df)
-
-        #ind1, ind2, ind3 = st.columns([0.2, 0.6, 0.2])
-
- # Upload another CSV file for the OHLC chart
-# uploaded_file = st.sidebar.file_uploader('Upload OHLC CSV file:')
-# if uploaded_file is not None:
-#     ohlc_df = parse_uploaded_csv(uploaded_file)
-#     print(f"Plotting number of rows: {len(ohlc_df)} with start date {ohlc_df.index[0]} and end date {ohlc_df.index[-1]}")
-#     st.write('## OHLC Chart')
-#     plot_ohlc_chart(ohlc_df)
-
+    # ==== Indexes ====
+    if st.session_state.selected_index_normalized != 'NONE' and 'index_normalized' in st.session_state:
+        res1, res2, res3 = st.columns([0.2, 0.6, 0.2])
+        with res2:
+            st.divider()
+            st.subheader(f"Viewing normalized index '{st.session_state.selected_index_normalized}'")
+            st.line_chart(st.session_state.index_normalized['Close'])
+    
+    if st.session_state.selected_index != 'NONE' and 'index' in st.session_state:
+        res1, res2, res3 = st.columns([0.2, 0.6, 0.2])
+        with res2:
+            st.divider()
+            st.subheader(f"Viewing index '{st.session_state.selected_index}'")        
+            st.line_chart(st.session_state.index['Close'])
+            
 
 if __name__ == '__main__':
     main()
