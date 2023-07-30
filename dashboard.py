@@ -112,8 +112,8 @@ def main():
         for key, value in trade_stats.items():
             st.markdown(f'**{key}:** {value:.2f}')        
     with res3:
-        st.subheader('Cumulative Equity curve')
-        with st.spinner('Loading chart'):
+        st.subheader('Cumulative Equity curve')        
+        if not cum_sum.empty:
             st.line_chart(cum_sum)
     
     # ==== Metric result ====
@@ -131,8 +131,8 @@ def main():
         for key, value in trade_stats.items():
             st.markdown(f'**{key}:** {value:.2f}')           
     with res3:
-        st.subheader('Cumulative Equity curve')
-        with st.spinner('Loading chart'):
+        st.subheader('Cumulative Equity curve')        
+        if not cum_sum.empty:
             st.line_chart(cum_sum)
         
     if st.session_state.selected_index != 'NONE' and 'index' in st.session_state:
