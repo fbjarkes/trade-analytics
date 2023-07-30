@@ -91,7 +91,7 @@ def main():
         st.session_state.index = index_filter.apply_index_metric(data_utils.load_index(st.session_state.selected_index), metrics=stats_utils.INDEX_METRICS)
         if not st.session_state.filtered_trades.empty:
             st.session_state.index = st.session_state.index.loc[f"{st.session_state.trades.index[0]}":f"{st.session_state.trades.index[-1]}"]
-            st.session_state.filtered_trades = stats_utils.filter_by_index(st.session_state.index, st.session_state.selected_index_metric, st.session_state.filtered_trades, tf=st.session_state.timeframe, value=st.session_state.selected_index_value)
+            st.session_state.filtered_trades = index_filter.filter_by_index(st.session_state.index, st.session_state.selected_index_metric, st.session_state.filtered_trades, tf=st.session_state.timeframe, value=st.session_state.selected_index_value)
 
     # ==== TABLE ====
     d1, d2, d3 = st.columns([0.1, 0.8, 0.1])
