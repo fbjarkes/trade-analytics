@@ -5,6 +5,7 @@ import pandas as pd
 from scipy import stats
 import streamlit as st
 import plotly.graph_objects as go
+import filters.index_filter as index_filter
 import utils.stats_utils as stats_utils
 import utils.data_utils as data_utils
 import utils.func_utils as func_utils
@@ -87,7 +88,7 @@ def main():
        
     if st.session_state.selected_index != 'NONE':
         # Can view index without loading trades
-        st.session_state.index = stats_utils.apply_index_metric(data_utils.load_index(st.session_state.selected_index), stats_utils.INDEX_METRICS)
+        st.session_state.index = index_filter.apply_index_metric(data_utils.load_index(st.session_state.selected_index), metrics=stats_utils.INDEX_METRICS)
         if not st.session_state.filtered_trades.empty:
             st.session_state.index = st.session_state.index.loc[f"{st.session_state.trades.index[0]}":f"{st.session_state.trades.index[-1]}"]
             st.session_state.filtered_trades = stats_utils.filter_by_index(st.session_state.index, st.session_state.selected_index_metric, st.session_state.filtered_trades, tf=st.session_state.timeframe, value=st.session_state.selected_index_value)

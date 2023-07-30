@@ -19,7 +19,7 @@ RANK_METRICS = [
 SELECTABLE_METRICS = ['ALL', 'RANDOM'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]
 EC_FILTER_METRICS = ['NONE', 'ABOVE_MA_5', 'ABOVE_MA_10', 'ABOVE_MA_20', 'ABOVE_MA_50', 'ABOVE_MA_100']
 INDEX = ['NONE', 'MMTW_20', 'MMFI_50', 'MMOH_100', 'MMOF_150', 'MMTH_200','OMXS30', 'IWM']
-INDEX_METRICS = ['NONE', 'EMA_10_20_ABOVE', 'EMA_10_20_BELOW', 'CLOSE_ABOVE_EMA_3', 'CLOSE_ABOVE_EMA_5', 'CLOSE_ABOVE_EMA_10', 'CLOSE_ABOVE_EMA_20', 'CLOSE_ABOVE_EMA_50', 'CLOSE_ABOVE_VALUE', 'CLOSE_BELOW_VALUE']
+INDEX_METRICS = ['NONE', 'EMA_10_20_ABOVE', 'EMA_10_20_BELOW', 'CLOSE_ABOVE_EMA_3', 'CLOSE_ABOVE_EMA_5', 'CLOSE_ABOVE_EMA_10', 'CLOSE_ABOVE_EMA_20', 'CLOSE_ABOVE_EMA_50', 'CLOSE_ABOVE_EMA_100', 'CLOSE_ABOVE_EMA_200', 'CLOSE_ABOVE_VALUE', 'CLOSE_BELOW_VALUE']
 
 
 def max_open(trades: pd.DataFrame) -> int:
@@ -65,17 +65,6 @@ def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
         if metric == 'RSI20':
             df[metric] = TA.RSI(df, 20)
     return df
-
-@st.cache_data
-def apply_index_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
-    print(f"Adding Index metrics")
-    df['EMA3'] = TA.EMA(df, 3)
-    df['EMA5'] = TA.EMA(df, 5)
-    df['EMA10'] = TA.EMA(df, 10)
-    df['EMA20'] = TA.EMA(df, 20)    
-    df['EMA50'] = TA.EMA(df, 50)
-    return df
-    
 
 def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
     with ThreadPoolExecutor() as executor:
