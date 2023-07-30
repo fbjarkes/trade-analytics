@@ -86,8 +86,11 @@ def main():
             st.session_state.filtered_trades = stats_utils.filter_equity_curve(st.session_state.filtered_trades, st.session_state.selected_ec_filter)
        
     if st.session_state.selected_index != 'NONE':
+        # Can view index without loading trades
         st.session_state.index = stats_utils.apply_index_metric(data_utils.load_index(st.session_state.selected_index), stats_utils.INDEX_METRICS)
-        st.session_state.filtered_trades = stats_utils.filter_by_index(st.session_state.index, st.session_state.selected_index_metric, st.session_state.filtered_trades, tf=st.session_state.timeframe, value=st.session_state.selected_index_value)
+        if not st.session_state.filtered_trades.empty:
+            st.session_state.index = st.session_state.index.loc[f"{st.session_state.trades.index[0]}":f"{st.session_state.trades.index[-1]}"]
+            st.session_state.filtered_trades = stats_utils.filter_by_index(st.session_state.index, st.session_state.selected_index_metric, st.session_state.filtered_trades, tf=st.session_state.timeframe, value=st.session_state.selected_index_value)
 
     # ==== TABLE ====
     d1, d2, d3 = st.columns([0.1, 0.8, 0.1])
@@ -135,7 +138,8 @@ def main():
         res1, res2, res3 = st.columns([0.2, 0.6, 0.2])
         with res2:
             st.divider()
-            st.subheader(f"Viewing index '{st.session_state.selected_index}'")        
+            st.subheader(f"Index {st.session_state.selected_index}")
+            st.write(f"Metric '{st.session_state.selected_index_metric}' ({st.session_state.index.index[0]} - {st.session_state.index.index[-1]})")        
             st.line_chart(st.session_state.index['Close'])
             
 

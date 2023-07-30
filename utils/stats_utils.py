@@ -183,9 +183,8 @@ def filter_equity_curve(df: pd.DataFrame, ec_metric: str) -> pd.DataFrame:
     
     return df
 
-def filter_by_index(index: pd.DataFrame, index_metric: str, trades: pd.DataFrame, tf: str, value=10) -> pd.DataFrame:
-    if trades.empty:
-        return trades        
+def filter_by_index(index: pd.DataFrame, index_metric: str, trades: pd.DataFrame, tf: str, value=10) -> pd.DataFrame:    
+    print(f"Adding {index_metric} to Index")
     if index_metric.startswith('CLOSE_ABOVE_EMA_'):
         period = int(index_metric.split('_')[-1])
         index[index_metric] = index['Close'] > index[f"EMA{period}"]
@@ -198,5 +197,5 @@ def filter_by_index(index: pd.DataFrame, index_metric: str, trades: pd.DataFrame
         return trades
     
     t = pd.merge_asof(trades, index[index_metric], left_index=True, right_on='time', direction='nearest')
-    
+ 
     return t
