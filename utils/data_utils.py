@@ -267,7 +267,7 @@ def add_rank_metrics_to_trades(trades: pd.DataFrame, tickers_data: List[pd.DataF
         print(f"Error applying rank metrics: {e}")            
         return trades
     
-    
+@st.cache_data 
 def load_index(index:str) -> pd.DataFrame:
     # Assuming TV data
     print(f"Loading index {index}")
