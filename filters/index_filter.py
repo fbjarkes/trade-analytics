@@ -7,6 +7,14 @@ import pandas as pd
 import streamlit as st
 
 
+INDEX_METRICS = ['NONE', 'EMA_10_20_ABOVE', 'EMA_10_20_BELOW', 
+                 'CLOSE_ABOVE_EMA_3', 'CLOSE_ABOVE_EMA_5', 'CLOSE_ABOVE_EMA_10', 'CLOSE_ABOVE_EMA_20', 'CLOSE_ABOVE_EMA_50', 'CLOSE_ABOVE_EMA_100', 'CLOSE_ABOVE_EMA_200',
+                 'CLOSE_BELOW_EMA_3', 'CLOSE_BELOW_EMA_5', 'CLOSE_BELOW_EMA_10', 'CLOSE_BELOW_EMA_20', 'CLOSE_BELOW_EMA_50', 'CLOSE_BELOW_EMA_100', 'CLOSE_BELOW_EMA_200', 
+                 'CLOSE_ABOVE_VALUE', 'CLOSE_BELOW_VALUE']
+
+INDEX = ['NONE', 'MMTW_20', 'MMFI_50', 'MMOH_100', 'MMOF_150', 'MMTH_200','OMXS30', 'IWM']
+
+
 @st.cache_data
 def apply_index_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
     print(f"Adding Index metrics")
@@ -29,6 +37,9 @@ def filter_by_index(index: pd.DataFrame, index_metric: str, trades: pd.DataFrame
     if index_metric.startswith('CLOSE_ABOVE_EMA_'):
         period = int(index_metric.split('_')[-1])
         index[index_metric] = index['Close'] > index[f"EMA{period}"]
+    elif index_metric.startswith('CLOSE_BELOW_EMA_'):
+        period = int(index_metric.split('_')[-1])
+        index[index_metric] = index['Close'] < index[f"EMA{period}"]
     elif index_metric == 'CLOSE_ABOVE_VALUE':
         index[index_metric] = index['Close'] > value
     elif index_metric == 'CLOSE_BELOW_VALUE':
@@ -43,3 +54,4 @@ def filter_by_index(index: pd.DataFrame, index_metric: str, trades: pd.DataFrame
     # filter trades
     t = t[t[index_metric] == True]
     return t
+

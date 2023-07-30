@@ -60,8 +60,8 @@ def main():
              
         st.write(f"Filter by Index")
         with st.expander('Index Metric'):
-            st.session_state.selected_index = st.selectbox('Select Index :', stats_utils.INDEX)
-            st.session_state.selected_index_metric = st.selectbox('Select Metric:', stats_utils.INDEX_METRICS)
+            st.session_state.selected_index = st.selectbox('Select Index :', index_filter.INDEX)
+            st.session_state.selected_index_metric = st.selectbox('Select Metric:', index_filter.INDEX_METRICS)
             st.session_state.selected_index_value = st.number_input('Index Value:', value=10)        
         st.divider()
         st.write(f"Equity Curve Filter")
@@ -88,7 +88,7 @@ def main():
        
     if st.session_state.selected_index != 'NONE':
         # Can view index without loading trades
-        st.session_state.index = index_filter.apply_index_metric(data_utils.load_index(st.session_state.selected_index), metrics=stats_utils.INDEX_METRICS)
+        st.session_state.index = index_filter.apply_index_metric(data_utils.load_index(st.session_state.selected_index), metrics=index_filter.INDEX_METRICS)
         if not st.session_state.filtered_trades.empty:
             st.session_state.index = st.session_state.index.loc[f"{st.session_state.trades.index[0]}":f"{st.session_state.trades.index[-1]}"]
             st.session_state.filtered_trades = index_filter.filter_by_index(st.session_state.index, st.session_state.selected_index_metric, st.session_state.filtered_trades, tf=st.session_state.timeframe, value=st.session_state.selected_index_value)
