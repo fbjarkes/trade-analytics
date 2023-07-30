@@ -19,7 +19,7 @@ RANK_METRICS = [
 SELECTABLE_METRICS = ['ALL', 'RANDOM'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]
 EC_FILTER_METRICS = ['NONE', 'ABOVE_MA_5', 'ABOVE_MA_10', 'ABOVE_MA_20', 'ABOVE_MA_50', 'ABOVE_MA_100']
 INDEX_NORMALIZED = ['NONE', 'MMTW_20', 'MMFI_50', 'MMOH_100', 'MMOF_150', 'MMTH_200']
-INDEX_METRICS_NORMALIZED = ['EMA_10_20_ABOVE', 'EMA_10_20_BELOW', '10_BELOW', '10_ABOVE']
+INDEX_METRICS_NORMALIZED = ['EMA_3_CLOSE_ABOVE', 'EMA_5_CLOSE_ABOVE','EMA_10_CLOSE_ABOVE', '10_BELOW', '10_ABOVE']
 INDEX = ['NONE', 'OMXS30', 'IWM']
 INDEX_METRICS = ['EMA_10_20_ABOVE', 'EMA_10_20_BELOW', 'EMA_5_CLOSE_ABOVE', 'EMA_10_CLOSE_ABOVE', 'EMA_20_CLOSE_ABOVE', 'EMA_50_CLOSE_ABOVE', 'ABOVE_VALUE', 'BELOW_VALUE']
 
@@ -69,10 +69,12 @@ def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
     return df
 
 def apply_index_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
-    df['EMA10'] = TA.EMA(df, 10)
-    df['EMA20'] = TA.EMA(df, 20)
+    df['EMA3'] = TA.EMA(df, 3)
     df['EMA5'] = TA.EMA(df, 5)
+    df['EMA10'] = TA.EMA(df, 10)
+    df['EMA20'] = TA.EMA(df, 20)    
     df['EMA50'] = TA.EMA(df, 50)
+    return df
     
 
 def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
