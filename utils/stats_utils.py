@@ -18,10 +18,8 @@ RANK_METRICS = [
 ]
 SELECTABLE_METRICS = ['ALL', 'RANDOM'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]
 EC_FILTER_METRICS = ['NONE', 'ABOVE_MA_5', 'ABOVE_MA_10', 'ABOVE_MA_20', 'ABOVE_MA_50', 'ABOVE_MA_100']
-INDEX_NORMALIZED = ['NONE', 'MMTW_20', 'MMFI_50', 'MMOH_100', 'MMOF_150', 'MMTH_200']
-INDEX_METRICS_NORMALIZED = ['EMA_3_CLOSE_ABOVE', 'EMA_5_CLOSE_ABOVE','EMA_10_CLOSE_ABOVE', '10_BELOW', '10_ABOVE']
-INDEX = ['NONE', 'OMXS30', 'IWM']
-INDEX_METRICS = ['EMA_10_20_ABOVE', 'EMA_10_20_BELOW', 'EMA_5_CLOSE_ABOVE', 'EMA_10_CLOSE_ABOVE', 'EMA_20_CLOSE_ABOVE', 'EMA_50_CLOSE_ABOVE', 'ABOVE_VALUE', 'BELOW_VALUE']
+INDEX = ['NONE', 'MMTW_20', 'MMFI_50', 'MMOH_100', 'MMOF_150', 'MMTH_200','OMXS30', 'IWM']
+INDEX_METRICS = ['EMA_10_20_ABOVE', 'EMA_10_20_BELOW', 'CLOSE_ABOVE_EMA_3', 'CLOSE_ABOVE_EMA_5', 'CLOSE_ABOVE_EMA_10', 'CLOSE_ABOVE_EMA_20', 'CLOSE_ABOVE_EMA_50', 'CLOSE_ABOVE_VALUE', 'CLOSE_BELOW_VALUE']
 
 
 def max_open(trades: pd.DataFrame) -> int:
@@ -185,6 +183,15 @@ def filter_equity_curve(df: pd.DataFrame, ec_metric: str) -> pd.DataFrame:
     
     return df
 
-def filter_by_index(index: pd.DataFrame, index_metric: str, trades: pd.DataFrame) -> pd.DataFrame:
-    # TODO: Extract a list of DateTimeIndex dates where index metric has been filtered out
+def filter_by_index(index: pd.DataFrame, index_metric: str, trades: pd.DataFrame, tf: str, value=10) -> pd.DataFrame:
+    # TODO: Extract a list of DateTimeIndex dates where index metric has been filtered out    
+    if index_metric.startswith('CLOSE_ABOVE_EMA_'):
+        period = int(index_metric.split('_')[-1])
+        index[index_metric] = index['Close'] > index[f"EMA{period}"]
+    elif index_metric == 'CLOSE_ABOVE_VALUE':
+        index[index_metric] = index['Close'] > value
+    elif index_metric == 'CLOSE_BELOW_VALUE':
+        index[index_metric] = index['Close'] < value
+    
+    
     return trades
