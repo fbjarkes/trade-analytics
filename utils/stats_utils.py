@@ -13,8 +13,9 @@ RANK_METRICS = [
     #'EMA100_DISTANCE',
     'PRICE',
     'RSI5',
-    #'RSI10',
-    #'RSI20',
+    'RSI10',
+    'RSI20',
+    'ADR20'
 ]
 SELECTABLE_METRICS = ['ALL', 'RANDOM'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]
 EC_FILTER_METRICS = ['NONE', 'ABOVE_MA_5', 'ABOVE_MA_10', 'ABOVE_MA_20', 'ABOVE_MA_50', 'ABOVE_MA_100']
@@ -61,6 +62,8 @@ def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
             df[metric] = TA.RSI(df, 10)
         if metric == 'RSI20':
             df[metric] = TA.RSI(df, 20)
+        if metric == 'ADR20':
+            df[metric] = (df['High'].subtract(df['Low']).rolling(10).mean()).divide(df['Close'])
     return df
 
 def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
