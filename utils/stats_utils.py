@@ -84,7 +84,7 @@ def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str,
             start_date = row.name
             # TODO: handle missing symbol in tickers_dict etc.
             for metric in metrics:
-                row[metric] = ticker_df.loc[start_date][metric]
+                row[metric] = ticker_df.loc[start_date][metric]                
                 #row.loc[metric] = ticker_df.loc[start_date][metric]
             #print(f"{start_date}: added {ticker_df.loc[start_date][metric]} for {row['symbol']}")        
         return row
@@ -93,6 +93,7 @@ def apply_rank(metrics: List[str], trades: pd.DataFrame, tickers_dict: dict[str,
     trades = trades.apply(apply_metrics, axis=1)
     print(f"Apply metrics: {perf_counter() - start:.2f} seconds")
     start = perf_counter()
+    # TODO: handle common intraday timeframes
     groups = trades.groupby([pd.Grouper(freq='D'), pd.Grouper(freq='15Min')])
     print(f"Group by: {perf_counter() - start:.2f} seconds")
     start = perf_counter()
@@ -105,7 +106,7 @@ def filter_rank(trades: pd.DataFrame, metric: str, rank: int) -> pd.DataFrame:
     if metric == 'ALL' or metric is None:
         return trades
     elif metric == 'RANDOM':
-        if st.session_state.timeframe != 'day':
+        if not st.session_state.timeframe in ['day', '255min']:
             st.error(f"Random metric not implemented for tf {st.session_state.timeframe}")
             return trades
         def select_random(group):

@@ -23,7 +23,7 @@ def main():
     st.session_state.start_eq = 10000    
     st.sidebar.markdown(f"## Bardata options")
     provider = st.sidebar.selectbox('Select data provider:', ['alpaca', 'tv', 'ib'])
-    st.session_state.timeframe = st.sidebar.selectbox('Select timeframe', ['15min', '30min', 'day'])    
+    st.session_state.timeframe = st.sidebar.selectbox('Select timeframe', ['15min', '30min', '255min', 'day'])    
     # path = st.sidebar.text_input('Data path', value=PROVIDER_CONFIG[provider])
     # if st.sidebar.button('Load data'):
     #     tickers_dict = load_tickers_data(trades, f"{PROVIDER_CONFIG[provider]}/{tf}", provider=provider)
@@ -81,9 +81,10 @@ def main():
         st.session_state.filtered_trades = NO_TRADES_DF
     else:    
         # TODO: run with click of button?
-        st.session_state.filtered_trades = filter_trades(st.session_state.trades)        
+        st.session_state.filtered_trades = filter_trades(st.session_state.trades)
+        print(f"[+] Filtered trades {len(st.session_state.filtered_trades)}")        
         # TODO: add to compose?
-        if st.session_state.selected_ec_filter != 'NONE':            
+        if 'selected_ec_filter' in st.session_state.selected_ec_filter and st.session_state.selected_ec_filter != 'NONE':            
             st.session_state.filtered_trades = stats_utils.filter_equity_curve(st.session_state.filtered_trades, st.session_state.selected_ec_filter)
        
     if st.session_state.selected_index != 'NONE':
