@@ -117,7 +117,7 @@ def main():
         if not cum_sum.empty:
             st.line_chart(cum_sum)
     
-    # ==== Metric result ====
+    # ==== Filtered result ====
     res1, res2, res3, res4 = st.columns([0.2, 0.3, 0.3, 0.2])
     if st.session_state.filtered_trades.empty:
         t, p_value = 0, 0    
@@ -126,8 +126,9 @@ def main():
     trade_stats, cum_sum = stats_utils.get_trade_stats(st.session_state.filtered_trades, st.session_state.start_eq)
     trade_stats['t-value'] = t
     trade_stats['p-value'] = p_value
-    with res2:        
-        st.header(f"Rank {st.session_state.selected_metric} ({len(st.session_state.filtered_trades)})")
+    with res2:
+        if 'selected_metric' in st.session_state:        
+            st.header(f"Rank {st.session_state.selected_metric} ({len(st.session_state.filtered_trades)})")
         st.subheader('Average PnL stats:')
         for key, value in trade_stats.items():
             st.markdown(f'**{key}:** {value:.2f}')           
