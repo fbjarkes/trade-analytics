@@ -14,8 +14,10 @@ RANK_METRICS = [
     'PRICE',
     'RSI5',
     'RSI10',
-    'RSI20',
-    'ADR20'
+    'ADR20',
+    'ROC50',
+    'ROC100',
+    'ROC200',
 ]
 SELECTABLE_METRICS = ['ALL', 'RANDOM'] + [f"{metric}_ASC" for metric in RANK_METRICS] + [f"{metric}_DESC" for metric in RANK_METRICS]
 EC_FILTER_METRICS = ['NONE', 'ABOVE_MA_5', 'ABOVE_MA_10', 'ABOVE_MA_20', 'ABOVE_MA_50', 'ABOVE_MA_100']
@@ -42,12 +44,14 @@ def get_trade_stats(df: pd.DataFrame, start_eq: float) -> Tuple[Dict[str, Any], 
         dd = pnl - cum_max
         dd_pct = dd / cum_max * 100
         max_drawdown = dd_pct.min()
+        win_rate = 0
+        pf = 0
     else:
         cum_sum = pd.Series()
         ret = 0
         max_drawdown = 0
     return {'Mean': mean, 'Std': std, 'Max Open': max_trades, 'Return (%)': ret, 'Max DD (%)': max_drawdown,
-            'Max Exposure': 0}, cum_sum
+            'Max Exposure': 0, 'WinRate (%)': win_rate, 'PF': pf}, cum_sum
 
 
 def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:    
@@ -59,11 +63,15 @@ def apply_rank_metric(df: pd.DataFrame, metrics: List[str]) -> pd.DataFrame:
         if metric == 'RSI5':
             df[metric] = TA.RSI(df, 5)
         if metric == 'RSI10':
-            df[metric] = TA.RSI(df, 10)
-        if metric == 'RSI20':
-            df[metric] = TA.RSI(df, 20)
+            df[metric] = TA.RSI(df, 10)        
         if metric == 'ADR20':
             df[metric] = (df['High'].subtract(df['Low']).rolling(10).mean()).divide(df['Close'])
+        if metric == 'ROC50':
+            df[metric] = TA.ROC(df, 50)
+        if metric == 'ROC100':
+            df[metric] = TA.ROC(df, 100)
+        if metric == 'ROC200':
+            df[metric] = TA.ROC(df, 200)
     return df
 
 def apply_rank_metric_multi(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
