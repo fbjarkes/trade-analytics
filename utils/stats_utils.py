@@ -30,7 +30,7 @@ def max_open(trades: pd.DataFrame) -> int:
     return max_in_progress
 
 
-def get_trade_stats(df: pd.DataFrame, start_eq: float) -> Tuple[Dict[str, Any], pd.Series]:
+def get_trade_stats(df: pd.DataFrame, start_eq: float, risk=0.01) -> Tuple[Dict[str, Any], pd.Series]:
     if df.empty:
         return {'Mean': 0, 'Std': 0, 'Max Open': 0, 'Return (%)': 0, 'Max DD (%)': 0, 'Max Exposure': 0}, pd.Series()
     mean = df["pnl"].mean()
@@ -44,13 +44,15 @@ def get_trade_stats(df: pd.DataFrame, start_eq: float) -> Tuple[Dict[str, Any], 
         dd = pnl - cum_max
         dd_pct = dd / cum_max * 100
         max_drawdown = dd_pct.min()
-        win_rate = 0
-        pf = 0
+        win_rate = ((df['pnl'] > 0).sum() / len(df)) * 100
+        pf = df[df['pnl'] > 0]['pnl'].sum() / abs(df[df['pnl'] <= 0]['pnl'].sum())
+        median = df["pnl"].median()
+        mean_pct = (df["pnl"].mean() / (start_eq*0.01)) * 100
     else:
         cum_sum = pd.Series()
         ret = 0
         max_drawdown = 0
-    return {'Mean': mean, 'Std': std, 'Max Open': max_trades, 'Return (%)': ret, 'Max DD (%)': max_drawdown,
+    return {'Mean': mean, 'Mean (%)': mean_pct, 'Median': median, 'Std': std, 'Max Open': max_trades, 'Return (%)': ret, 'Max DD (%)': max_drawdown,
             'Max Exposure': 0, 'WinRate (%)': win_rate, 'PF': pf}, cum_sum
 
 
